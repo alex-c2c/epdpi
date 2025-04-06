@@ -55,6 +55,19 @@ def handle_msg(msg:dict[str, str]) -> None:
     if data[0] == "clear":
         clear_display()
 
+    elif data[0] == "draw":
+        file_path:str = data[1]
+        time:str = data[2]
+        mode:TimeMode = TimeMode(int(data[3]))
+        color:int = int(data[4])
+        shadow:int = int(data[5])
+        draw_grids:bool = True if data[6] == "1" else False
+
+        if file_path == "":
+            draw_time(time, mode, color, shadow, draw_grids)
+        else:
+            draw_image_with_time(file_path, time, mode, color, shadow, draw_grids)
+
 
 def get_time_pos(mode:TimeMode, epd) -> tuple[int, int]:
     # 9 Section
