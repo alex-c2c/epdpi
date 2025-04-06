@@ -189,7 +189,9 @@ def draw_grids(draw:ImageDraw, epd) -> None:
 def update_epd_busy(busy:bool) -> None:
     logging.debug(f"Settings EPD {busy=}")
     #r.set('epd_busy', "1" if busy else "0")
-    os.environ["epd_busy"] = "1" if busy else "0"
+    value:str = "1" if busy else "0"
+    os.environ["epd_busy"] = value
+    r.publish("epd", f"busy^{value}")
     
 
 def get_epd_busy() -> bool:
@@ -200,7 +202,7 @@ def get_epd_busy() -> bool:
 
 
 def clear_display() -> int:
-    logging.debug(f"Attempting to clear display")
+    loggng.debug(f"Attempting to clear display")
 
     if not is_machine_valid():
         logging.warning("Invalid machine")
