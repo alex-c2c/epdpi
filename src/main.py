@@ -1,13 +1,32 @@
 import argparse
-from datetime import time
 import os
+import sys
 import logging
 import redis
+import time
 from PIL import Image, ImageDraw, ImageFont
 from PIL.ImageFont import FreeTypeFont
 from consts import *
+from gpiozero import Button
+
 
 logging.basicConfig(level=logging.DEBUG)
+
+
+DIR_FONT:str = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), 'font')
+DIR_LIB:str = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), 'lib')
+if os.path.exists(DIR_LIB):
+    sys.path.append(DIR_LIB)
+
+
+logging.debug(f"{DIR_FONT=}")
+logging.debug(f"{DIR_LIB=}")
+
+
+button1 = Button(2)
+button2 = Button(3)
+button3 = Button(5)
+
 
 r = redis.Redis(host='localhost', port=6379, decode_responses=True)
 sub = r.pubsub()
@@ -25,6 +44,16 @@ font_full_3 = ImageFont.truetype(os.path.join("font", 'Roboto-Bold.ttf'), 300)
 
 def is_machine_valid() -> bool:
     return "IS_RASPBERRYPI" in os.environ
+
+
+def handle_msg(msg:dict[str, str]) -> None:
+    if msg["type"] != "message":
+        return
+
+    data:list[str] = msg["data"].split("^")
+    
+    if data[0] == "clear":
+        clear_display()
 
 
 def get_time_pos(mode:TimeMode, epd) -> tuple[int, int]:
@@ -146,37 +175,16 @@ def draw_grids(draw:ImageDraw, epd) -> None:
 
 def update_epd_busy(busy:bool) -> None:
     logging.debug(f"Settings EPD {busy=}")
-    r.set('epd_busy', "1" if busy else "0")
+    #r.set('epd_busy', "1" if busy else "0")
+    os.environ["epd_busy"] = "1" if busy else "0"
     
+
 def get_epd_busy() -> bool:
-    busy:bool = True if r.get('epd_busy') == "1" else False
+    #busy:bool = True if r.get('epd_busy') == "1" else False
+    busy:bool = True if os.environ.get("epd_busy") == "1" else False
     logging.debug(f"Getting EPD {busy=}")
     return busy
 
-'''
-def update_epd_busy(busy:bool) -> None:
-    logging.debug(f"Setting EPD {busy=}")
-    with open (TMP_FILE_PATH, 'wb') as f:
-        f.write(b'1' if busy else b'0')
-
-
-def get_epd_busy() -> bool:
-    busy:bool = False
-
-    if not os.path.isfile(TMP_FILE_PATH):
-        logging.debug(f"Unable to find {TMP_FILE_PATH=}") 
-    
-    else:
-        with open(TMP_FILE_PATH, 'rb') as f:
-            b:bytes = f.read(1)
-            if len(b) > 0:
-                busy = True if b == b'1' else False
-        
-        logging.debug(f"Opened {TMP_FILE_PATH=} but file is empty.")
-
-    logging.debug(f"Getting EPD {busy=}")
-    return busy
-'''
 
 def clear_display() -> int:
     logging.debug(f"Attempting to clear display")
@@ -192,7 +200,7 @@ def clear_display() -> int:
     try:
         update_epd_busy(True)
         
-        from lib.waveshare_epd.epd7in3e import EPD
+        from waveshare_epd.epd7in3e import EPD
         epd = EPD()
         epd.init()
         epd.clear()
@@ -224,7 +232,7 @@ def draw_time(time:str, mode:TimeMode = TimeMode.FULL_3, color:int = COLOR_BLACK
     try:
         update_epd_busy(True)
         
-        from lib.waveshare_epd.epd7in3e import EPD
+        from waveshare_epd.epd7in3e import EPD
         epd = EPD()
         epd.init()
         
@@ -280,7 +288,7 @@ def draw_image_with_time(file_path:str, time:str, mode:TimeMode = TimeMode.FULL_
     try:
         update_epd_busy(True)
         
-        from lib.waveshare_epd.epd7in3e import EPD
+        from waveshare_epd.epd7in3e import EPD
         epd = EPD()
         epd.init()
         
@@ -324,8 +332,19 @@ def draw_image_with_time(file_path:str, time:str, mode:TimeMode = TimeMode.FULL_
 
 
 while True:
-    
-    time.sleep(1)
+    if button1.is_pressed:
+        logging.debug(f"Button 1 pressed")
+    elif button2.is_pressed:
+        logging.debug(f"Button 2 pressed")
+    elif button3.is_pressed:
+        logging.debug(f"Button 3 pressed")
+
+    msg = sub.get_message()
+    if msg is not None:
+        logging.debug(f"{msg=}")
+        handle_msg(msg)
+
+    time.sleep(0.1)
 
 
 '''
