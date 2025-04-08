@@ -6,7 +6,6 @@ from PIL import Image, ImageDraw, ImageFont
 from PIL.ImageFont import FreeTypeFont
 
 from consts import *
-from redis_controller import publish_epd_busy
 
 
 DIR_FONT: str = os.path.join(
@@ -26,10 +25,6 @@ font_4_sect = ImageFont.truetype(os.path.join("font", "Roboto-Bold.ttf"), 130)
 font_full_1 = ImageFont.truetype(os.path.join("font", "Roboto-Bold.ttf"), 200)
 font_full_2 = ImageFont.truetype(os.path.join("font", "Roboto-Bold.ttf"), 250)
 font_full_3 = ImageFont.truetype(os.path.join("font", "Roboto-Bold.ttf"), 300)
-
-
-def is_machine_valid() -> bool:
-    return "IS_RASPBERRYPI" in os.environ
 
 
 def get_time_pos(mode: TimeMode, epd) -> tuple[int, int]:
@@ -162,49 +157,18 @@ def draw_grids(draw: ImageDraw, epd) -> None:
     draw.line((0, 240, 800, 240), epd.RED, 1)
 
 
-def set_epd_busy(busy: bool) -> None:
-    logging.debug(f"Settings EPD {busy=}")
-    os.environ["epd_busy"] = "1" if busy else "0"
-    publish_epd_busy(busy)
-
-
-def get_epd_busy() -> bool:
-    busy: bool = True if os.environ.get("epd_busy") == "1" else False
-    logging.debug(f"Getting EPD {busy=}")
-    return busy
-
-
-def clear_display() -> int:
-    logging.debug(f"Attempting to clear display")
-
-    if not is_machine_valid():
-        logging.warning("Invalid machine")
-        return RETURN_CODE_INVALID_MACHINE
-
-    if get_epd_busy():
-        logging.warning("EPD is busy")
-        return RETURN_CODE_EPD_BUSY
-
+def clear() -> int:
     try:
-        set_epd_busy(True)
-
         from waveshare_epd.epd7in3e import EPD
-
         epd = EPD()
         epd.init()
         epd.clear()
         epd.sleep()
-
-        set_epd_busy(False)
-
-        logging.debug(f"Finished clearing display")
-
-        return RETURN_CODE_SUCCESS
+        return RETURN_CODE_SUCCESS, None
 
     except IOError as e:
         logging.error(e)
-        set_epd_busy(False)
-        return RETURN_CODE_EXCEPTION
+        return RETURN_CODE_EXCEPTION, e
 
 
 def draw_time(
@@ -214,19 +178,8 @@ def draw_time(
     shadow: int = COLOR_NONE,
     draw_grid: bool = False,
 ) -> int:
-    logging.debug(f"Attempting to draw time")
-
-    if not is_machine_valid():
-        logging.warning(f"Invalid machine")
-        return RETURN_CODE_INVALID_MACHINE
-
-    if get_epd_busy():
-        logging.warning(f"EPD is busy")
-        return RETURN_CODE_EPD_BUSY
 
     try:
-        set_epd_busy(True)
-
         from waveshare_epd.epd7in3e import EPD
 
         epd = EPD()
@@ -260,16 +213,13 @@ def draw_time(
         # Sleep
         epd.sleep()
 
-        set_epd_busy(False)
-
         logging.debug(f"Finished drawing time")
 
-        return RETURN_CODE_SUCCESS
+        return RETURN_CODE_SUCCESS, None
 
     except IOError as e:
-        set_epd_busy(False)
         logging.error(e)
-        return RETURN_CODE_EXCEPTION
+        return RETURN_CODE_EXCEPTION, e
 
 
 def draw_image_with_time(
@@ -280,19 +230,7 @@ def draw_image_with_time(
     shadow: int = COLOR_NONE,
     draw_grid: bool = False,
 ) -> int:
-    logging.debug(f"Attempting to draw image with time")
-
-    if not is_machine_valid():
-        logging.warning(f"Invalid machine")
-        return RETURN_CODE_INVALID_MACHINE
-
-    if get_epd_busy():
-        logging.warning(f"EPD is busy")
-        return RETURN_CODE_EPD_BUSY
-
     try:
-        set_epd_busy(True)
-
         from waveshare_epd.epd7in3e import EPD
 
         epd = EPD()
@@ -327,16 +265,13 @@ def draw_image_with_time(
         # Sleep
         epd.sleep()
 
-        set_epd_busy(False)
-
         logging.debug(f"Finish drawing image with time")
 
-        return RETURN_CODE_SUCCESS
+        return RETURN_CODE_SUCCESS, None
 
     except IOError as e:
-        set_epd_busy(False)
         logging.error(e)
-        return RETURN_CODE_EXCEPTION
+        return RETURN_CODE_EXCEPTION, e
 
 
 
