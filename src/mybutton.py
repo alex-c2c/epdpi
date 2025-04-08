@@ -8,7 +8,7 @@ class MyButton:
     callback: Any
     
     def __init__(self, pin, callback):
-        self.btn = Button(pin, bounce_time=0.05, hold_repeat=False)
+        self.btn = Button(pin)
         self.state = 0
         self.pin = pin
         self.callback = callback
