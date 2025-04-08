@@ -137,5 +137,3 @@ if __name__ == "__main__":
             logging.debug(f"Button 2 pressed")
         elif button3.is_pressed:
             logging.debug(f"Button 3 pressed")
-
-        time.sleep(0.5)
