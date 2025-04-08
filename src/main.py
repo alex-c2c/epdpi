@@ -5,29 +5,11 @@ import redis
 from gpiozero import Button
 from consts import *
 from display import clear, draw_time, draw_image_with_time
+from mybutton import MyButton
+
 
 logging.basicConfig(level=logging.DEBUG)
 
-button1_state: int = 0
-
-def button1_pressed() -> None:
-    global button1_state
-    if button1_state != 0:
-        return
-    
-    button1_state = 1
-
-def button1_released() -> None:
-    global button1_state
-    if button1_state != 1:
-        return
-    
-    button1_state = 0
-    
-    global redis_client
-    redis_client.publish("clockpi", "test")
-    
-    logging.debug(f"button 1 pressed")
 
 def is_machine_valid() -> bool:
     return "IS_RASPBERRYPI" in os.environ
@@ -141,13 +123,33 @@ def redis_publish(key: str, *args) -> None:
     msg: str = f"{key}^{'^'.join(args)}"
     logging.debug(f"redis_publish {CHANNEL_CLOCKPI=} {msg=}")
     redis_client.publish(CHANNEL_CLOCKPI, msg)
-        
 
-button1 = Button(2, bounce_time=0.05, hold_repeat=False)
-button1.when_pressed = button1_pressed
-button1.when_released = button1_released
-button2 = Button(3, bounce_time=0.05, hold_repeat=False)
-button3 = Button(5, bounce_time=0.05, hold_repeat=False)
+
+def button1_callback() -> None:
+    logging.debug(f"button1_callback()")
+    
+    global redis_client
+    redis_client.publish("clockpi", "button 1 pressed")
+
+
+def button2_callback() -> None:
+    logging.debug(f"button2_callback()")
+    
+    global redis_client
+    redis_client.publish("clockpi", "button 2 pressed")
+
+
+def button3_callback() -> None:
+    logging.debug(f"button3_callback()")
+    
+    global redis_client
+    redis_client.publish("clockpi", "button 3 pressed")
+    
+    
+button1 = MyButton(2, button1_callback)
+button2 = MyButton(3, button2_callback)
+button3 = MyButton(5, button3_callback)
+
 
 redis_client = redis.Redis(host="localhost", port=6379, decode_responses=True)
 redis_pubsub = redis_client.pubsub()
