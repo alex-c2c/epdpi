@@ -15,6 +15,13 @@ def is_machine_valid() -> bool:
     return "IS_RASPBERRYPI" in os.environ
 
 
+def redis_publish(key: str, *args) -> None:
+    global redis_client
+    msg: str = f"{key}^{'^'.join(args)}"
+    logging.debug(f"redis_publish {CHANNEL_CLOCKPI=} {msg=}")
+    redis_client.publish(CHANNEL_CLOCKPI, msg)
+    
+
 def set_epd_busy(busy: bool) -> None:
     logging.debug(f"Settings EPD {busy=}")
     os.environ["epd_busy"] = "1" if busy else "0"
@@ -39,7 +46,7 @@ def epd_clear() -> None:
         logging.warning("EPD is busy")
         redis_publish("result", "clear", f"{RETURN_CODE_EPD_BUSY}", "E-Paper display is busy.")
         return
-        
+
     set_epd_busy(True)
     
     logging.debug(f"Clearing display")
@@ -118,37 +125,30 @@ def redis_exception_handler(ex, pubsub, thread) -> None:
     pubsub.close()
 
 
-def redis_publish(key: str, *args) -> None:
-    global redis_client
-    msg: str = f"{key}^{'^'.join(args)}"
-    logging.debug(f"redis_publish {CHANNEL_CLOCKPI=} {msg=}")
-    redis_client.publish(CHANNEL_CLOCKPI, msg)
-
-
-def button1_callback() -> None:
-    logging.debug(f"button1_callback()")
+def btn_cb_next_img() -> None:
+    logging.debug(f"btn_cb_next_img()")
     
     global redis_client
-    redis_client.publish("clockpi", "button 1 pressed")
+    redis_client.publish("clockpi", "button^next")
 
 
-def button2_callback() -> None:
-    logging.debug(f"button2_callback()")
+def btn_cb_prev_img() -> None:
+    logging.debug(f"btn_cb_prev_img()")
     
     global redis_client
-    redis_client.publish("clockpi", "button 2 pressed")
+    redis_client.publish("clockpi", "button^prev")
 
 
-def button3_callback() -> None:
-    logging.debug(f"button3_callback()")
+def btn_cb_change_mode() -> None:
+    logging.debug(f"btn_cb_change_mode()")
     
     global redis_client
-    redis_client.publish("clockpi", "button 3 pressed")
+    redis_client.publish("clockpi", "button^change")
     
     
-button1 = MyButton(2, button1_callback)
-button2 = MyButton(3, button2_callback)
-button3 = MyButton(5, button3_callback)
+btn_next_img = MyButton(2, btn_cb_next_img)
+btn_prev_img = MyButton(3, btn_cb_prev_img)
+btn_change_mode = MyButton(5, btn_cb_change_mode)
 
 
 redis_client = redis.Redis(host="localhost", port=6379, decode_responses=True)
@@ -162,11 +162,4 @@ redis_thread.name = "redis pubsub thread"
 
 if __name__ == "__main__":
     while True:
-        if button1.is_pressed:
-            logging.debug(f"B1")
-        elif button2.is_pressed:
-            logging.debug(f"B2")
-        elif button3.is_pressed:
-            logging.debug(f"B3")
-
         time.sleep(0.1)
