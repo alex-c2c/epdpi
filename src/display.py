@@ -87,7 +87,7 @@ def get_time_pos(mode: TimeMode, epd) -> tuple[int, int]:
     elif mode == TimeMode.FULL_2:
         return 88, 65
     elif mode == TimeMode.FULL_3:
-        return 20, 30
+        return 15, 30
     else:
         return 0, 0
 
