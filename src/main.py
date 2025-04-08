@@ -8,7 +8,7 @@ from display import clear, draw_time, draw_image_with_time
 
 logging.basicConfig(level=logging.DEBUG)
 
-
+button1_state: int = 0
 
 def button1_pressed() -> None:
     global button1_state
