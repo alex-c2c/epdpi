@@ -13,8 +13,12 @@ from gpiozero import Button
 logging.basicConfig(level=logging.DEBUG)
 
 
-DIR_FONT:str = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), 'font')
-DIR_LIB:str = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), 'lib')
+DIR_FONT: str = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "font"
+)
+DIR_LIB: str = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "lib"
+)
 if os.path.exists(DIR_LIB):
     sys.path.append(DIR_LIB)
 
@@ -28,40 +32,35 @@ button2 = Button(3)
 button3 = Button(5)
 
 
-r = redis.Redis(host='localhost', port=6379, decode_responses=True)
-sub = r.pubsub()
-sub.subscribe("epd")
+font_9_sect = ImageFont.truetype(os.path.join("font", "Roboto-Bold.ttf"), 80)
+font_6_sect = ImageFont.truetype(os.path.join("font", "Roboto-Bold.ttf"), 130)
+font_4_sect = ImageFont.truetype(os.path.join("font", "Roboto-Bold.ttf"), 130)
 
-
-font_9_sect = ImageFont.truetype(os.path.join("font", 'Roboto-Bold.ttf'), 80)
-font_6_sect = ImageFont.truetype(os.path.join("font", 'Roboto-Bold.ttf'), 130)
-font_4_sect = ImageFont.truetype(os.path.join("font", 'Roboto-Bold.ttf'), 130)
-
-font_full_1 = ImageFont.truetype(os.path.join("font", 'Roboto-Bold.ttf'), 200)
-font_full_2 = ImageFont.truetype(os.path.join("font", 'Roboto-Bold.ttf'), 250)
-font_full_3 = ImageFont.truetype(os.path.join("font", 'Roboto-Bold.ttf'), 300)
+font_full_1 = ImageFont.truetype(os.path.join("font", "Roboto-Bold.ttf"), 200)
+font_full_2 = ImageFont.truetype(os.path.join("font", "Roboto-Bold.ttf"), 250)
+font_full_3 = ImageFont.truetype(os.path.join("font", "Roboto-Bold.ttf"), 300)
 
 
 def is_machine_valid() -> bool:
     return "IS_RASPBERRYPI" in os.environ
 
 
-def handle_msg(msg:dict[str, str]) -> None:
-    if msg["type"] != "message":
+def redis_event_handler(msg: dict[str, str]) -> None:
+    if msg["type"] != "message" or msg["channel"] != CHANNEL_EPDPI:
         return
 
-    data:list[str] = msg["data"].split("^")
-    
-    if data[0] == "clear":
+    data: list[str] = msg["data"].split("^")
+
+    if data[0] == MSG_CLEAR:
         clear_display()
 
-    elif data[0] == "draw":
-        file_path:str = data[1]
-        time:str = data[2]
-        mode:TimeMode = TimeMode(int(data[3]))
-        color:int = int(data[4])
-        shadow:int = int(data[5])
-        draw_grids:bool = True if data[6] == "1" else False
+    elif data[0] == MSG_DRAW:
+        file_path: str = data[1]
+        time: str = data[2]
+        mode: TimeMode = TimeMode(int(data[3]))
+        color: int = int(data[4])
+        shadow: int = int(data[5])
+        draw_grids: bool = True if data[6] == "1" else False
 
         if file_path == "":
             draw_time(time, mode, color, shadow, draw_grids)
@@ -69,7 +68,23 @@ def handle_msg(msg:dict[str, str]) -> None:
             draw_image_with_time(file_path, time, mode, color, shadow, draw_grids)
 
 
-def get_time_pos(mode:TimeMode, epd) -> tuple[int, int]:
+def redis_exception_handler(ex, pubsub, thread):
+    logging.error(f"{ex=}")
+    thread.stop()
+    thread.join(timeout=1.0)
+    pubsub.close()
+
+
+redis_client = redis.Redis(host="localhost", port=6379, decode_responses=True)
+redis_pubsub = redis_client.pubsub()
+redis_pubsub.subscribe(**{f"{CHANNEL_EPDPI}": redis_event_handler})
+redis_thread = redis_pubsub.run_in_thread(
+    sleep_time=1, exception_handler=redis_exception_handler
+)
+redis_thread.name = "redis pubsub thread"
+
+
+def get_time_pos(mode: TimeMode, epd) -> tuple[int, int]:
     # 9 Section
     if mode == TimeMode.SECT_9_TOP_LEFT:
         return 0 * epd.width / 3 + SECT_9_OFFSET_X, 0 * epd.height / 3 + SECT_9_OFFSET_Y
@@ -89,7 +104,7 @@ def get_time_pos(mode:TimeMode, epd) -> tuple[int, int]:
         return 1 * epd.width / 3 + SECT_9_OFFSET_X, 2 * epd.height / 3 + SECT_9_OFFSET_Y
     elif mode == TimeMode.SECT_9_BOTTOM_RIGHT:
         return 2 * epd.width / 3 + SECT_9_OFFSET_X, 2 * epd.height / 3 + SECT_9_OFFSET_Y
-    
+
     # 6 Section
     elif mode == TimeMode.SECT_6_TOP_LEFT:
         return 0 * epd.width / 2 + SECT_6_OFFSET_X, 0 * epd.height / 3 + SECT_6_OFFSET_Y
@@ -103,52 +118,65 @@ def get_time_pos(mode:TimeMode, epd) -> tuple[int, int]:
         return 0 * epd.width / 2 + SECT_6_OFFSET_X, 2 * epd.height / 3 + SECT_6_OFFSET_Y
     elif mode == TimeMode.SECT_6_BOTTOM_RIGHT:
         return 1 * epd.width / 2 + SECT_6_OFFSET_X, 2 * epd.height / 3 + SECT_6_OFFSET_Y
-    
+
     # 4 Section
     elif mode == TimeMode.SECT_4_TOP_LEFT:
         return 0 * epd.width / 2 + SECT_4_OFFSET_X, 0 * epd.height / 2 + SECT_4_OFFSET_Y
     elif mode == TimeMode.SECT_4_TOP_RIGHT:
-        return 1 * epd.width / 2 + + SECT_4_OFFSET_X, 0 * epd.height / 2 + SECT_4_OFFSET_Y
+        return (
+            1 * epd.width / 2 + +SECT_4_OFFSET_X,
+            0 * epd.height / 2 + SECT_4_OFFSET_Y,
+        )
     elif mode == TimeMode.SECT_4_BOTTOM_LEFT:
-        return 0 * epd.width / 2 + + SECT_4_OFFSET_X, 1 * epd.height / 2 + SECT_4_OFFSET_Y
+        return (
+            0 * epd.width / 2 + +SECT_4_OFFSET_X,
+            1 * epd.height / 2 + SECT_4_OFFSET_Y,
+        )
     elif mode == TimeMode.SECT_4_BOTTOM_RIGHT:
-        return 1 * epd.width / 2 + + SECT_4_OFFSET_X, 1 * epd.height / 2 + SECT_4_OFFSET_Y
-    
+        return (
+            1 * epd.width / 2 + +SECT_4_OFFSET_X,
+            1 * epd.height / 2 + SECT_4_OFFSET_Y,
+        )
+
     # Full Screen
     elif mode == TimeMode.FULL_1:
         return 150, 100
     elif mode == TimeMode.FULL_2:
         return 88, 65
     elif mode == TimeMode.FULL_3:
-        return 25, 30
+        return 20, 30
     else:
         return 0, 0
-    
 
-def get_font(mode:TimeMode) -> FreeTypeFont:
+
+def get_font(mode: TimeMode) -> FreeTypeFont:
     if mode == TimeMode.FULL_1:
         return font_full_1
     elif mode == TimeMode.FULL_2:
         return font_full_2
     elif mode == TimeMode.FULL_3:
         return font_full_3
-    elif mode == TimeMode.SECT_4_TOP_LEFT or \
-            mode == TimeMode.SECT_4_TOP_RIGHT or \
-            mode == TimeMode.SECT_4_BOTTOM_LEFT or \
-            mode == TimeMode.SECT_4_BOTTOM_RIGHT:
+    elif (
+        mode == TimeMode.SECT_4_TOP_LEFT
+        or mode == TimeMode.SECT_4_TOP_RIGHT
+        or mode == TimeMode.SECT_4_BOTTOM_LEFT
+        or mode == TimeMode.SECT_4_BOTTOM_RIGHT
+    ):
         return font_4_sect
-    elif mode == TimeMode.SECT_6_TOP_LEFT or \
-            mode == TimeMode.SECT_6_TOP_RIGHT or \
-            mode == TimeMode.SECT_6_MIDDLE_LEFT or \
-            mode == TimeMode.SECT_6_MIDDLE_RIGHT or \
-            mode == TimeMode.SECT_6_BOTTOM_LEFT or \
-            mode == TimeMode.SECT_6_BOTTOM_RIGHT:
+    elif (
+        mode == TimeMode.SECT_6_TOP_LEFT
+        or mode == TimeMode.SECT_6_TOP_RIGHT
+        or mode == TimeMode.SECT_6_MIDDLE_LEFT
+        or mode == TimeMode.SECT_6_MIDDLE_RIGHT
+        or mode == TimeMode.SECT_6_BOTTOM_LEFT
+        or mode == TimeMode.SECT_6_BOTTOM_RIGHT
+    ):
         return font_6_sect
     else:
         return font_9_sect
 
 
-def get_color(color:int, epd) -> int:
+def get_color(color: int, epd) -> int:
     if color == COLOR_BLACK:
         return epd.BLACK
     elif color == COLOR_WHITE:
@@ -164,45 +192,45 @@ def get_color(color:int, epd) -> int:
     else:
         logging.warning(f"Selected unknown {color=}")
         return epd.BLACK
-    
 
-def draw_grids(draw:ImageDraw, epd) -> None:
+
+def draw_grids(draw: ImageDraw, epd) -> None:
     # White every 10px
     for x in range(80):
-        x_p:int = (x + 1) * 10
+        x_p: int = (x + 1) * 10
         draw.line((x_p, 0, x_p, 480), epd.WHITE, 1)
     for y in range(48):
-        y_p:int = (y + 1) * 10
+        y_p: int = (y + 1) * 10
         draw.line((0, y_p, 800, y_p), epd.WHITE, 1)
 
-    # Black 1/3 
-    draw.line((266,0, 266, 480), epd.BLACK, 1)
-    draw.line((532,0, 532, 480), epd.BLACK, 1)
-    draw.line((0,159, 800, 159), epd.BLACK, 1)
-    draw.line((0,319, 800, 319), epd.BLACK, 1)
-    
+    # Black 1/3
+    draw.line((266, 0, 266, 480), epd.BLACK, 1)
+    draw.line((532, 0, 532, 480), epd.BLACK, 1)
+    draw.line((0, 159, 800, 159), epd.BLACK, 1)
+    draw.line((0, 319, 800, 319), epd.BLACK, 1)
+
     # Red 1/2
     draw.line((400, 0, 400, 480), epd.RED, 1)
     draw.line((0, 240, 800, 240), epd.RED, 1)
 
 
-def update_epd_busy(busy:bool) -> None:
+def update_epd_busy(busy: bool) -> None:
     logging.debug(f"Settings EPD {busy=}")
-    #r.set('epd_busy', "1" if busy else "0")
-    value:str = "1" if busy else "0"
+    # r.set('epd_busy', "1" if busy else "0")
+    value: str = "1" if busy else "0"
     os.environ["epd_busy"] = value
     r.publish("epd", f"busy^{value}")
-    
+
 
 def get_epd_busy() -> bool:
-    #busy:bool = True if r.get('epd_busy') == "1" else False
-    busy:bool = True if os.environ.get("epd_busy") == "1" else False
+    # busy:bool = True if r.get('epd_busy') == "1" else False
+    busy: bool = True if os.environ.get("epd_busy") == "1" else False
     logging.debug(f"Getting EPD {busy=}")
     return busy
 
 
 def clear_display() -> int:
-    loggng.debug(f"Attempting to clear display")
+    logging.debug(f"Attempting to clear display")
 
     if not is_machine_valid():
         logging.warning("Invalid machine")
@@ -211,48 +239,56 @@ def clear_display() -> int:
     if get_epd_busy():
         logging.warning("EPD is busy")
         return RETURN_CODE_EPD_BUSY
-    
+
     try:
         update_epd_busy(True)
-        
+
         from waveshare_epd.epd7in3e import EPD
+
         epd = EPD()
         epd.init()
         epd.clear()
         epd.sleep()
-        
+
         update_epd_busy(False)
 
         logging.debug(f"Finished clearing display")
-        
+
         return RETURN_CODE_SUCCESS
-        
+
     except IOError as e:
         logging.error(e)
         update_epd_busy(False)
         return RETURN_CODE_EXCEPTION
 
 
-def draw_time(time:str, mode:TimeMode = TimeMode.FULL_3, color:int = COLOR_BLACK, shadow:int = COLOR_NONE, draw_grid:bool = False) -> int:
+def draw_time(
+    time: str,
+    mode: TimeMode = TimeMode.FULL_3,
+    color: int = COLOR_BLACK,
+    shadow: int = COLOR_NONE,
+    draw_grid: bool = False,
+) -> int:
     logging.debug(f"Attempting to draw time")
 
     if not is_machine_valid():
         logging.warning(f"Invalid machine")
         return RETURN_CODE_INVALID_MACHINE
-    
+
     if get_epd_busy():
         logging.warning(f"EPD is busy")
         return RETURN_CODE_EPD_BUSY
-    
+
     try:
         update_epd_busy(True)
-        
+
         from waveshare_epd.epd7in3e import EPD
+
         epd = EPD()
         epd.init()
-        
+
         #  Create Empty Screen
-        img = Image.new('RGB', (epd.width, epd.height))
+        img = Image.new("RGB", (epd.width, epd.height))
         draw = ImageDraw.Draw(img)
 
         # Debug - draw grids
@@ -262,53 +298,63 @@ def draw_time(time:str, mode:TimeMode = TimeMode.FULL_3, color:int = COLOR_BLACK
         # Draw time
         if mode != TimeMode.OFF and time != "":
             x, y = get_time_pos(mode, epd)
-            color:int = get_color(color, epd)
-            font:ImageFont = get_font(mode)
-            
+            color: int = get_color(color, epd)
+            font: ImageFont = get_font(mode)
+
             if shadow is not COLOR_NONE:
-                shadow:int = get_color(shadow, epd)
-                draw.text((x + SHADOW_OFFSET_X, y + SHADOW_OFFSET_Y), time, shadow, font)    
-            
+                shadow: int = get_color(shadow, epd)
+                draw.text(
+                    (x + SHADOW_OFFSET_X, y + SHADOW_OFFSET_Y), time, shadow, font
+                )
+
             draw.text((x, y), time, color, font)
 
         # Send to display
         epd.display(epd.getbuffer(img))
-        
+
         # Sleep
         epd.sleep()
-        
+
         update_epd_busy(False)
 
         logging.debug(f"Finished drawing time")
 
         return RETURN_CODE_SUCCESS
-            
+
     except IOError as e:
         update_epd_busy(False)
         logging.error(e)
         return RETURN_CODE_EXCEPTION
-    
 
-def draw_image_with_time(file_path:str, time:str, mode:TimeMode = TimeMode.FULL_3, color:int = COLOR_WHITE, shadow:int = COLOR_NONE, draw_grid:bool = False) -> int:
+
+def draw_image_with_time(
+    file_path: str,
+    time: str,
+    mode: TimeMode = TimeMode.FULL_3,
+    color: int = COLOR_WHITE,
+    shadow: int = COLOR_NONE,
+    draw_grid: bool = False,
+) -> int:
     logging.debug(f"Attempting to draw image with time")
 
     if not is_machine_valid():
         logging.warning(f"Invalid machine")
         return RETURN_CODE_INVALID_MACHINE
-    
+
     if get_epd_busy():
         logging.warning(f"EPD is busy")
         return RETURN_CODE_EPD_BUSY
-    
+
     try:
         update_epd_busy(True)
-        
+
         from waveshare_epd.epd7in3e import EPD
+
         epd = EPD()
         epd.init()
-        
+
         #  Create image
-        img = Image.open(file_path)        
+        img = Image.open(file_path)
         draw = ImageDraw.Draw(img)
 
         # Debug - draw grids
@@ -319,27 +365,29 @@ def draw_image_with_time(file_path:str, time:str, mode:TimeMode = TimeMode.FULL_
         if mode != TimeMode.OFF and time != "":
             x, y = get_time_pos(mode, epd)
             logging.debug(f"{x=}, {y=}")
-            color:int = get_color(color, epd)
-            font:ImageFont = get_font(mode)
-            
+            color: int = get_color(color, epd)
+            font: ImageFont = get_font(mode)
+
             if shadow is not COLOR_NONE:
-                shadow:int = get_color(shadow, epd)
-                draw.text((x + SHADOW_OFFSET_X, y + SHADOW_OFFSET_Y), time, shadow, font)    
-            
+                shadow: int = get_color(shadow, epd)
+                draw.text(
+                    (x + SHADOW_OFFSET_X, y + SHADOW_OFFSET_Y), time, shadow, font
+                )
+
             draw.text((x, y), time, color, font)
 
         # Send to display
         epd.display(epd.getbuffer(img))
-        
+
         # Sleep
         epd.sleep()
-        
+
         update_epd_busy(False)
 
         logging.debug(f"Finish drawing image with time")
-        
+
         return RETURN_CODE_SUCCESS
-            
+
     except IOError as e:
         update_epd_busy(False)
         logging.error(e)
@@ -354,15 +402,10 @@ while True:
     elif button3.is_pressed:
         logging.debug(f"Button 3 pressed")
 
-    msg = sub.get_message()
-    if msg is not None:
-        logging.debug(f"{msg=}")
-        handle_msg(msg)
-
     time.sleep(0.1)
 
 
-'''
+"""
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         prog="EPD",
@@ -416,4 +459,4 @@ if __name__ == "__main__":
         result = draw_image_with_time(image_path, time, mode, color, shadow, draw_grids)
     
     exit(result)
-'''
+"""
