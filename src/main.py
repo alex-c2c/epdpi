@@ -8,9 +8,11 @@ from display import clear, draw_time, draw_image_with_time
 
 logging.basicConfig(level=logging.DEBUG)
 
-button1 = Button(2)
-button2 = Button(3)
-button3 = Button(5)
+button1 = Button(2, bounce_time=0.5, hold_repeat=False)
+button2 = Button(3, bounce_time=0.5, hold_repeat=False)
+button3 = Button(5, bounce_time=0.5, hold_repeat=False)
+
+
 
 def is_machine_valid() -> bool:
     return "IS_RASPBERRYPI" in os.environ
@@ -136,15 +138,13 @@ redis_thread.name = "redis pubsub thread"
 
 
 if __name__ == "__main__":
+    button1_state: int = 0
     while True:
         if button1.is_pressed:
             logging.debug(f"Button 1 pressed")
-            redis_publish("button", "1")
         elif button2.is_pressed:
             logging.debug(f"Button 2 pressed")
-            redis_publish("button", "2")
         elif button3.is_pressed:
             logging.debug(f"Button 3 pressed")
-            redis_publish("button", "3")
 
         time.sleep(0.1)
