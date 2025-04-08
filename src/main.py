@@ -37,7 +37,6 @@ def get_epd_busy() -> bool:
 
 
 def process_jobs() -> None:
-    logging.debug(f"processing queue")
     global jobs
     if len(jobs) == 0:
         return
@@ -45,6 +44,8 @@ def process_jobs() -> None:
     job = jobs.pop(0)
     data: list[str] = job.split("^")
 
+    logging.debug(f"Processing job {data=}")
+    
     if data[0] == MSG_CLEAR:
         epd_clear()
 
