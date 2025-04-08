@@ -130,8 +130,7 @@ def btn_cb_next_img() -> None:
     
     global redis_client
     redis_client.publish("clockpi", "button^next")
-    set_epd_busy(True)
-    set_epd_busy(False)
+    redis_publish("test", "1", "2", "3", 4)
 
 
 def btn_cb_prev_img() -> None:
