@@ -83,6 +83,8 @@ def epd_draw(file_path:str, time:str, mode: TimeMode, color: int, shadow: int, d
     
 
 def redis_event_handler(msg: dict[str, str]) -> None:
+    logging.debug(f"redis_event_handler {msg=}")
+    
     if msg["type"] != "message" or msg["channel"] != CHANNEL_EPDPI:
         return
 
@@ -136,4 +138,4 @@ if __name__ == "__main__":
         elif button3.is_pressed:
             logging.debug(f"Button 3 pressed")
 
-        time.sleep(0.1)
+        time.sleep(0.5)
