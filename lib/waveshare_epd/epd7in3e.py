@@ -54,7 +54,6 @@ class EPD:
 
     # Hardware reset
     def reset(self):
-        logging.debug("e-Paper reset")
         epdconfig.digital_write(self.reset_pin, 1)
         epdconfig.delay_ms(20) 
         epdconfig.digital_write(self.reset_pin, 0)         # module reset
@@ -63,14 +62,12 @@ class EPD:
         epdconfig.delay_ms(20)   
 
     def send_command(self, command):
-        logging.debug("e-Paper send command")
         epdconfig.digital_write(self.dc_pin, 0)
         epdconfig.digital_write(self.cs_pin, 0)
         epdconfig.spi_writebyte([command])
         epdconfig.digital_write(self.cs_pin, 1)
 
     def send_data(self, data):
-        logging.debug("e-Paper send data")
         epdconfig.digital_write(self.dc_pin, 1)
         epdconfig.digital_write(self.cs_pin, 0)
         epdconfig.spi_writebyte([data])
@@ -78,20 +75,17 @@ class EPD:
         
     # send a lot of data   
     def send_data2(self, data):
-        logging.debug("e-Paper send data 2")
         epdconfig.digital_write(self.dc_pin, 1)
         epdconfig.digital_write(self.cs_pin, 0)
         epdconfig.spi_writebyte2(data)
         epdconfig.digital_write(self.cs_pin, 1)
         
     def ReadBusyH(self):
-        logger.debug("e-Paper busy H")
         while(epdconfig.digital_read(self.busy_pin) == 0):      # 0: busy, 1: idle
             epdconfig.delay_ms(5)
         logger.debug("e-Paper busy H release")
 
     def TurnOnDisplay(self):
-        logging.debug("e-Paper turn on display")
         self.send_command(0x04) # POWER_ON
         self.ReadBusyH()
 
@@ -106,9 +100,7 @@ class EPD:
     def init(self):
         if (epdconfig.module_init() != 0):
             return -1
-        
-        logging.debug("e-Paper init")
-        
+                
         # EPD hardware init start
         self.reset()
         self.ReadBusyH()
@@ -208,21 +200,18 @@ class EPD:
         return buf
 
     def display(self, image):
-        logging.debug("e-Paper display")
         self.send_command(0x10)
         self.send_data2(image)
 
         self.TurnOnDisplay()
         
     def clear(self, color=0x11):
-        logging.debug("e-Paper clear")
         self.send_command(0x10)
         self.send_data2([color] * int(self.height) * int(self.width/2))
 
         self.TurnOnDisplay()
 
     def sleep(self):
-        logging.debug("e-Paper sleep")
         self.send_command(0x07) # DEEP_SLEEP
         self.send_data(0XA5)
         
