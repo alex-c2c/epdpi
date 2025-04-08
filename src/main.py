@@ -114,6 +114,7 @@ def redis_exception_handler(ex, pubsub, thread) -> None:
 
 def redis_publish(key: str, *args) -> None:
     msg: str = f"{key}^{'^'.join(args)}"
+    logging.debug(f"redis_publish {CHANNEL_CLOCKPI=} {msg=}")
     redis_client.publish(CHANNEL_CLOCKPI, msg)
         
 
