@@ -37,7 +37,7 @@ def set_epd_busy(busy: bool) -> None:
 def get_epd_busy() -> bool:
     global redis_client
 
-    busy: bool = True if redis_client.get(SETTINGS_EPD_BUSY, "0") == "1" else False
+    busy: bool = True if redis_client.get(SETTINGS_EPD_BUSY) == "1" else False
     logging.debug(f"Getting EPD {busy=}")
     return busy
 
