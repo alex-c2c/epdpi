@@ -139,9 +139,12 @@ if __name__ == "__main__":
     while True:
         if button1.is_pressed:
             logging.debug(f"Button 1 pressed")
+            redis_publish("button", "1")
         elif button2.is_pressed:
             logging.debug(f"Button 2 pressed")
+            redis_publish("button", "2")
         elif button3.is_pressed:
             logging.debug(f"Button 3 pressed")
+            redis_publish("button", "3")
 
         time.sleep(0.1)
