@@ -13,7 +13,7 @@ def redis_exception_handler(ex, pubsub, thread) -> None:
 
 def publish_epd_busy(busy:bool) -> None:
     redis_client.publish(CHANNEL_CLOCKPI, f'busy^{"1" if busy else "0"}')
-
+        
 
 redis_client = redis.Redis(host="localhost", port=6379, decode_responses=True)
 redis_pubsub = redis_client.pubsub()
