@@ -8,11 +8,22 @@ from display import clear, draw_time, draw_image_with_time
 
 logging.basicConfig(level=logging.DEBUG)
 
-button1 = Button(2, bounce_time=0.5, hold_repeat=False)
-button2 = Button(3, bounce_time=0.5, hold_repeat=False)
-button3 = Button(5, bounce_time=0.5, hold_repeat=False)
 
 
+def button1_pressed() -> None:
+    global button1_state
+    if button1_state != 0:
+        return
+    
+    button1_state = 1
+
+def button1_released() -> None:
+    global button1_state
+    if button1_state != 1:
+        return
+    
+    button1_state = 0
+    logging.debug(f"button 1 pressed")
 
 def is_machine_valid() -> bool:
     return "IS_RASPBERRYPI" in os.environ
@@ -128,6 +139,12 @@ def redis_publish(key: str, *args) -> None:
     redis_client.publish(CHANNEL_CLOCKPI, msg)
         
 
+button1 = Button(2, bounce_time=0.5, hold_repeat=False)
+button1.when_pressed = button1_pressed
+button1.when_released = button1_released
+button2 = Button(3, bounce_time=0.5, hold_repeat=False)
+button3 = Button(5, bounce_time=0.5, hold_repeat=False)
+
 redis_client = redis.Redis(host="localhost", port=6379, decode_responses=True)
 redis_pubsub = redis_client.pubsub()
 redis_pubsub.subscribe(**{f"{CHANNEL_EPDPI}": redis_event_handler})
@@ -136,9 +153,8 @@ redis_thread = redis_pubsub.run_in_thread(
 )
 redis_thread.name = "redis pubsub thread"
 
-
+'''
 if __name__ == "__main__":
-    button1_state: int = 0
     while True:
         if button1.is_pressed:
             logging.debug(f"Button 1 pressed")
@@ -148,3 +164,4 @@ if __name__ == "__main__":
             logging.debug(f"Button 3 pressed")
 
         time.sleep(0.1)
+'''
