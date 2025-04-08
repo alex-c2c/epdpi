@@ -45,7 +45,7 @@ def process_jobs() -> None:
     data: list[str] = job.split("^")
 
     logging.debug(f"Processing job {data=}")
-    
+
     if data[0] == MSG_CLEAR:
         epd_clear()
 
@@ -57,10 +57,7 @@ def process_jobs() -> None:
         shadow: int = int(data[5])
         draw_grids: bool = True if data[6] == "1" else False
 
-        if file_path == "":
-            draw_time(time, mode, color, shadow, draw_grids)
-        else:
-            draw_image_with_time(file_path, time, mode, color, shadow, draw_grids)
+        epd_draw(file_path, time, mode, color, shadow, draw_grids)
 
 
 def epd_clear() -> None:
