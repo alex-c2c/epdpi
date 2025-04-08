@@ -188,4 +188,4 @@ redis_thread.name = "redis pubsub thread"
 if __name__ == "__main__":
     while True:
         time.sleep(1.0)
-        process_queue()
+        process_jobs()
