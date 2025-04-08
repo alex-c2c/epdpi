@@ -216,14 +216,12 @@ def draw_grids(draw: ImageDraw, epd) -> None:
 
 def update_epd_busy(busy: bool) -> None:
     logging.debug(f"Settings EPD {busy=}")
-    # r.set('epd_busy', "1" if busy else "0")
     value: str = "1" if busy else "0"
     os.environ["epd_busy"] = value
-    r.publish("epd", f"busy^{value}")
+    redis_client.publish(CHANNEL_CLOCKPI, f"busy^{value}")
 
 
 def get_epd_busy() -> bool:
-    # busy:bool = True if r.get('epd_busy') == "1" else False
     busy: bool = True if os.environ.get("epd_busy") == "1" else False
     logging.debug(f"Getting EPD {busy=}")
     return busy
