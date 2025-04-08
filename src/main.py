@@ -65,12 +65,12 @@ def epd_draw(file_path:str, time:str, mode: TimeMode, color: int, shadow: int, d
     set_epd_busy(True)
 
     if file_path == "":
-        logging.debug(msg=f"Attempting to draw time")
+        logging.debug(f"Attempting to draw time")
         result, error = draw_time(time, mode, color, shadow, draw_grids)
         logging.debug((f"Finished drawing time"))
     
     else:
-        logging.debug(msg=f"Attempting to draw image with time")
+        logging.debug(f"Attempting to draw image with time")
         result, error = draw_image_with_time(file_path, time, mode, color, shadow, draw_grids)
         logging.debug(f"Finished drawing image with time")
 
@@ -137,3 +137,5 @@ if __name__ == "__main__":
             logging.debug(f"Button 2 pressed")
         elif button3.is_pressed:
             logging.debug(f"Button 3 pressed")
+
+        time.sleep(0.1)
