@@ -7,6 +7,7 @@ import time
 from PIL import Image, ImageDraw, ImageFont
 from PIL.ImageFont import FreeTypeFont
 from consts import *
+from redis_controller import publish_epd_busy
 from gpiozero import Button
 
 
@@ -43,45 +44,6 @@ font_full_3 = ImageFont.truetype(os.path.join("font", "Roboto-Bold.ttf"), 300)
 
 def is_machine_valid() -> bool:
     return "IS_RASPBERRYPI" in os.environ
-
-
-def redis_event_handler(msg: dict[str, str]) -> None:
-    if msg["type"] != "message" or msg["channel"] != CHANNEL_EPDPI:
-        return
-
-    data: list[str] = msg["data"].split("^")
-
-    if data[0] == MSG_CLEAR:
-        clear_display()
-
-    elif data[0] == MSG_DRAW:
-        file_path: str = data[1]
-        time: str = data[2]
-        mode: TimeMode = TimeMode(int(data[3]))
-        color: int = int(data[4])
-        shadow: int = int(data[5])
-        draw_grids: bool = True if data[6] == "1" else False
-
-        if file_path == "":
-            draw_time(time, mode, color, shadow, draw_grids)
-        else:
-            draw_image_with_time(file_path, time, mode, color, shadow, draw_grids)
-
-
-def redis_exception_handler(ex, pubsub, thread):
-    logging.error(f"{ex=}")
-    thread.stop()
-    thread.join(timeout=1.0)
-    pubsub.close()
-
-
-redis_client = redis.Redis(host="localhost", port=6379, decode_responses=True)
-redis_pubsub = redis_client.pubsub()
-redis_pubsub.subscribe(**{f"{CHANNEL_EPDPI}": redis_event_handler})
-redis_thread = redis_pubsub.run_in_thread(
-    sleep_time=1, exception_handler=redis_exception_handler
-)
-redis_thread.name = "redis pubsub thread"
 
 
 def get_time_pos(mode: TimeMode, epd) -> tuple[int, int]:
@@ -214,11 +176,10 @@ def draw_grids(draw: ImageDraw, epd) -> None:
     draw.line((0, 240, 800, 240), epd.RED, 1)
 
 
-def update_epd_busy(busy: bool) -> None:
+def set_epd_busy(busy: bool) -> None:
     logging.debug(f"Settings EPD {busy=}")
-    value: str = "1" if busy else "0"
-    os.environ["epd_busy"] = value
-    redis_client.publish(CHANNEL_CLOCKPI, f"busy^{value}")
+    os.environ["epd_busy"] = "1" if busy else "0"
+    publish_epd_busy(busy)
 
 
 def get_epd_busy() -> bool:
@@ -239,7 +200,7 @@ def clear_display() -> int:
         return RETURN_CODE_EPD_BUSY
 
     try:
-        update_epd_busy(True)
+        set_epd_busy(True)
 
         from waveshare_epd.epd7in3e import EPD
 
@@ -248,7 +209,7 @@ def clear_display() -> int:
         epd.clear()
         epd.sleep()
 
-        update_epd_busy(False)
+        set_epd_busy(False)
 
         logging.debug(f"Finished clearing display")
 
@@ -256,7 +217,7 @@ def clear_display() -> int:
 
     except IOError as e:
         logging.error(e)
-        update_epd_busy(False)
+        set_epd_busy(False)
         return RETURN_CODE_EXCEPTION
 
 
@@ -278,7 +239,7 @@ def draw_time(
         return RETURN_CODE_EPD_BUSY
 
     try:
-        update_epd_busy(True)
+        set_epd_busy(True)
 
         from waveshare_epd.epd7in3e import EPD
 
@@ -313,14 +274,14 @@ def draw_time(
         # Sleep
         epd.sleep()
 
-        update_epd_busy(False)
+        set_epd_busy(False)
 
         logging.debug(f"Finished drawing time")
 
         return RETURN_CODE_SUCCESS
 
     except IOError as e:
-        update_epd_busy(False)
+        set_epd_busy(False)
         logging.error(e)
         return RETURN_CODE_EXCEPTION
 
@@ -344,7 +305,7 @@ def draw_image_with_time(
         return RETURN_CODE_EPD_BUSY
 
     try:
-        update_epd_busy(True)
+        set_epd_busy(True)
 
         from waveshare_epd.epd7in3e import EPD
 
@@ -380,14 +341,14 @@ def draw_image_with_time(
         # Sleep
         epd.sleep()
 
-        update_epd_busy(False)
+        set_epd_busy(False)
 
         logging.debug(f"Finish drawing image with time")
 
         return RETURN_CODE_SUCCESS
 
     except IOError as e:
-        update_epd_busy(False)
+        set_epd_busy(False)
         logging.error(e)
         return RETURN_CODE_EXCEPTION
 
