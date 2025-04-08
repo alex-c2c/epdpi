@@ -154,15 +154,14 @@ redis_thread = redis_pubsub.run_in_thread(
 )
 redis_thread.name = "redis pubsub thread"
 
-'''
+
 if __name__ == "__main__":
     while True:
         if button1.is_pressed:
-            logging.debug(f"Button 1 pressed")
+            logging.debug(f"B1")
         elif button2.is_pressed:
-            logging.debug(f"Button 2 pressed")
+            logging.debug(f"B2")
         elif button3.is_pressed:
-            logging.debug(f"Button 3 pressed")
+            logging.debug(f"B3")
 
         time.sleep(0.1)
-'''
