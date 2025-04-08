@@ -16,19 +16,28 @@ def is_machine_valid() -> bool:
 
 def redis_publish(key: str, *args) -> None:
     global redis_client
-    msg: str = f"{key}^{'^'.join(args)}"
+    
+    if len(args) > 0:
+        msg: str = f"{key}^{'^'.join(args)}"
+    else:
+        msg: str = f"{key}"
+    
     logging.debug(f"redis_publish {CHANNEL_CLOCKPI=} {msg=}")
     redis_client.publish(CHANNEL_CLOCKPI, msg)
 
 
 def set_epd_busy(busy: bool) -> None:
+    global redis_client
+
     logging.debug(f"Settings EPD {busy=}")
-    os.environ["epd_busy"] = "1" if busy else "0"
-    redis_publish("busy", os.environ.get("epd_busy"))
+    redis_client.set(SETTINGS_EPD_BUSY, "1" if busy else "0")
+    redis_publish(MSG_BUSY, MSG_UPDATED)
 
 
 def get_epd_busy() -> bool:
-    busy: bool = True if os.environ.get("epd_busy") == "1" else False
+    global redis_client
+
+    busy: bool = True if redis_client.get(SETTINGS_EPD_BUSY, "1") else False
     logging.debug(f"Getting EPD {busy=}")
     return busy
 
@@ -39,14 +48,14 @@ def epd_clear() -> None:
     if not is_machine_valid():
         logging.warning("Invalid machine")
         redis_publish(
-            "result", "clear", f"{RETURN_CODE_INVALID_MACHINE}", "Invalid machine."
+            MSG_RESULT, MSG_CLEAR, f"{RETURN_CODE_INVALID_MACHINE}", "Invalid machine."
         )
         return
 
     if get_epd_busy():
         logging.warning("EPD is busy")
         redis_publish(
-            "result", "clear", f"{RETURN_CODE_EPD_BUSY}", "E-Paper display is busy."
+            MSG_RESULT, MSG_CLEAR, f"{RETURN_CODE_EPD_BUSY}", "E-Paper display is busy."
         )
         return
 
@@ -59,9 +68,9 @@ def epd_clear() -> None:
     set_epd_busy(False)
 
     if result == RETURN_CODE_SUCCESS:
-        redis_publish("result", "draw", f"{RETURN_CODE_SUCCESS}")
+        redis_publish(MSG_RESULT, MSG_CLEAR, f"{RETURN_CODE_SUCCESS}")
     else:
-        redis_publish("result", "draw", f"{RETURN_CODE_EXCEPTION}", f"{error}")
+        redis_publish(MSG_RESULT, MSG_CLEAR, f"{RETURN_CODE_EXCEPTION}", f"{error}")
 
 
 def epd_draw(
@@ -71,14 +80,14 @@ def epd_draw(
     if not is_machine_valid():
         logging.warning(f"Invalid machine")
         redis_publish(
-            "result", "draw", f"{RETURN_CODE_INVALID_MACHINE}", "Invalid machine."
+            MSG_RESULT, MSG_DRAW, f"{RETURN_CODE_INVALID_MACHINE}", "Invalid machine."
         )
         return
 
     if get_epd_busy():
         logging.warning(f"EPD is busy")
         redis_publish(
-            "result", "draw", f"{RETURN_CODE_EPD_BUSY}", "E-Paper display is busy."
+            MSG_RESULT, MSG_DRAW, f"{RETURN_CODE_EPD_BUSY}", "E-Paper display is busy."
         )
         return
 
@@ -99,9 +108,9 @@ def epd_draw(
     set_epd_busy(False)
 
     if result == RETURN_CODE_SUCCESS:
-        redis_publish("result", "draw", f"{RETURN_CODE_SUCCESS}")
+        redis_publish(MSG_RESULT, MSG_DRAW, f"{RETURN_CODE_SUCCESS}")
     else:
-        redis_publish("result", "draw", f"{RETURN_CODE_EXCEPTION}", f"{error}")
+        redis_publish(MSG_RESULT, MSG_DRAW, f"{RETURN_CODE_EXCEPTION}", f"{error}")
 
 
 def redis_event_handler(msg: dict[str, str]) -> None:
@@ -135,23 +144,17 @@ def redis_exception_handler(ex, pubsub, thread) -> None:
 
 def btn_cb_next_img() -> None:
     logging.debug(f"btn_cb_next_img()")
-
-    global redis_client
-    redis_client.publish("clockpi", "button^next")
+    redis_publish(MSG_BTN, MSG_BTN_NEXT)
 
 
 def btn_cb_prev_img() -> None:
     logging.debug(f"btn_cb_prev_img()")
-
-    global redis_client
-    redis_client.publish("clockpi", "button^prev")
+    redis_publish(MSG_BTN, MSG_BTN_PREV)
 
 
 def btn_cb_change_mode() -> None:
     logging.debug(f"btn_cb_change_mode()")
-
-    global redis_client
-    redis_client.publish("clockpi", "button^change")
+    redis_publish(MSG_BTN, MSG_BTN_CHANGE)
 
 
 btn_next_img = MyButton(2, btn_cb_next_img)

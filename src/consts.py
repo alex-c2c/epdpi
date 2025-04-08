@@ -7,6 +7,23 @@ CHANNEL_CLOCKPI: str = "clockpi"
 CHANNEL_EPDPI: str = "epdpi"
 MSG_CLEAR: str = "clear"
 MSG_DRAW: str = "draw"
+MSG_BUSY: str = "busy"
+MSG_UPDATED: str = "updated"
+MSG_RESULT: str = "result"
+
+MSG_BTN: str = "button"
+MSG_BTN_NEXT: str = "next"
+MSG_BTN_PREV: str = "prev"
+MSG_BTN_CHANGE: str = "change"
+MSG_BTN_ONOFF: str = "on_off"
+
+# Settings Key
+SETTINGS_EPD_BUSY: str = "epd_busy"
+SETTINGS_IMAGE_ID: str = "image_id"
+SETTINGS_MODE: str = "mode"
+SETTINGS_COLOR: str = "color"
+SETTINGS_SHADOW: str = "shadow"
+SETTINGS_DRAW_GRIDS: str = "draw_grids"
 
 # Allowed extensions for drawing
 ALLOWED_EXTENSIONS: set[str] = "bmp"
