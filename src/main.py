@@ -96,7 +96,7 @@ def epd_clear() -> None:
 def epd_draw(
     file_path: str, time: str, mode: TimeMode, color: int, shadow: int, draw_grids: bool
 ) -> None:
-    logging.debug(msg=f"Attempting to draw")
+    logging.debug(f"Attempting to draw")
     if not is_machine_valid():
         logging.warning(f"Invalid machine")
         redis_publish(
@@ -114,7 +114,7 @@ def epd_draw(
     set_epd_busy(True)
 
     if file_path == "":
-        logging.debug(msg=f"Drawing time")
+        logging.debug(f"Drawing time")
         result, error = draw_time(time, mode, color, shadow, draw_grids)
         logging.debug((f"Finished drawing time"))
 
