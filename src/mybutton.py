@@ -16,12 +16,14 @@ class MyButton:
         self.btn.when_released = self.when_released
     
     def when_pressed(self):
+        print("press")
         if self.state != 0:
             return
         
         self.state = 1
     
     def when_released(self):
+        print("release")
         if self.state != 1:
             return
     
