@@ -34,16 +34,20 @@ def epd_clear() -> None:
     if not is_machine_valid():
         logging.warning("Invalid machine")
         redis_publish("result", "clear", f"{RETURN_CODE_INVALID_MACHINE}", "Invalid machine.")
+        return
 
     if get_epd_busy():
         logging.warning("EPD is busy")
         redis_publish("result", "clear", f"{RETURN_CODE_EPD_BUSY}", "E-Paper display is busy.")
-    
+        return
+        
     set_epd_busy(True)
-    result, error = clear()
-    set_epd_busy(False)
     
+    logging.debug(f"Clearing display")
+    result, error = clear()
     logging.debug(f"Finished clearing display")
+    
+    set_epd_busy(False)
     
     if result == RETURN_CODE_SUCCESS:
         redis_publish("result", "draw", f"{RETURN_CODE_SUCCESS}")
@@ -52,6 +56,7 @@ def epd_clear() -> None:
     
 
 def epd_draw(file_path:str, time:str, mode: TimeMode, color: int, shadow: int, draw_grids: bool) -> None:
+    logging.debug(msg=f"Attempting to draw")
     if not is_machine_valid():
         logging.warning(f"Invalid machine")
         redis_publish("result", "draw", f"{RETURN_CODE_INVALID_MACHINE}", "Invalid machine.")
@@ -65,12 +70,12 @@ def epd_draw(file_path:str, time:str, mode: TimeMode, color: int, shadow: int, d
     set_epd_busy(True)
 
     if file_path == "":
-        logging.debug(f"Attempting to draw time")
+        logging.debug(msg=f"Drawing time")
         result, error = draw_time(time, mode, color, shadow, draw_grids)
         logging.debug((f"Finished drawing time"))
     
     else:
-        logging.debug(f"Attempting to draw image with time")
+        logging.debug(f"Drawing image with time")
         result, error = draw_image_with_time(file_path, time, mode, color, shadow, draw_grids)
         logging.debug(f"Finished drawing image with time")
 
@@ -115,6 +120,7 @@ def redis_exception_handler(ex, pubsub, thread) -> None:
 
 
 def redis_publish(key: str, *args) -> None:
+    global redis_client
     msg: str = f"{key}^{'^'.join(args)}"
     logging.debug(f"redis_publish {CHANNEL_CLOCKPI=} {msg=}")
     redis_client.publish(CHANNEL_CLOCKPI, msg)
