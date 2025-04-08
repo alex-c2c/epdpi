@@ -23,6 +23,7 @@ def button1_released() -> None:
         return
     
     button1_state = 0
+    print("test")
     logging.debug(f"button 1 pressed")
 
 def is_machine_valid() -> bool:
