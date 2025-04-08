@@ -10,9 +10,6 @@ from mybutton import MyButton
 logging.basicConfig(level=logging.DEBUG)
 
 
-jobs: list[str] = []
-
-
 def is_machine_valid() -> bool:
     return "IS_RASPBERRYPI" in os.environ
 
@@ -34,30 +31,6 @@ def get_epd_busy() -> bool:
     busy: bool = True if os.environ.get("epd_busy") == "1" else False
     logging.debug(f"Getting EPD {busy=}")
     return busy
-
-
-def process_jobs() -> None:
-    global jobs
-    if len(jobs) == 0:
-        return
-
-    job = jobs.pop(0)
-    data: list[str] = job.split("^")
-
-    logging.debug(f"Processing job {data=}")
-
-    if data[0] == MSG_CLEAR:
-        epd_clear()
-
-    elif data[0] == MSG_DRAW:
-        file_path: str = data[1]
-        time: str = data[2]
-        mode: TimeMode = TimeMode(int(data[3]))
-        color: int = int(data[4])
-        shadow: int = int(data[5])
-        draw_grids: bool = True if data[6] == "1" else False
-
-        epd_draw(file_path, time, mode, color, shadow, draw_grids)
 
 
 def epd_clear() -> None:
@@ -136,9 +109,21 @@ def redis_event_handler(msg: dict[str, str]) -> None:
 
     if msg["type"] != "message" or msg["channel"] != CHANNEL_EPDPI:
         return
+    
+    data: list[str] = msg["data"].split("^")
+    
+    if data[0] == MSG_CLEAR:
+        epd_clear()
 
-    global jobs
-    jobs.append(msg["data"])
+    elif data[0] == MSG_DRAW:
+        file_path: str = data[1]
+        time: str = data[2]
+        mode: TimeMode = TimeMode(int(data[3]))
+        color: int = int(data[4])
+        shadow: int = int(data[5])
+        draw_grids: bool = True if data[6] == "1" else False
+
+        epd_draw(file_path, time, mode, color, shadow, draw_grids)
 
 
 def redis_exception_handler(ex, pubsub, thread) -> None:
@@ -183,7 +168,8 @@ redis_thread = redis_pubsub.run_in_thread(
 redis_thread.name = "redis pubsub thread"
 
 
+'''
 if __name__ == "__main__":
     while True:
         time.sleep(1.0)
-        process_jobs()
+'''
