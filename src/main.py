@@ -1,15 +1,16 @@
 #!/usr/bin/python
 
-import logging
-import time
 import redis
+import logging
 
 from consts import *
 from display import clear, draw_time, draw_image_with_time
 from mybutton import MyButton
+from logging import Logger, getLogger
 
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
+logger: Logger = getLogger(__name__)
 
 
 def is_machine_valid() -> bool:
@@ -18,20 +19,20 @@ def is_machine_valid() -> bool:
 
 def redis_publish(key: str, *args) -> None:
     global redis_client
-    
+
     if len(args) > 0:
         msg: str = f"{key}^{'^'.join(args)}"
     else:
         msg: str = f"{key}"
-    
-    logging.debug(f"redis_publish {CHANNEL_CLOCKPI=} {msg=}")
+
+    logging.info(f"redis_publish {CHANNEL_CLOCKPI=} {msg=}")
     redis_client.publish(CHANNEL_CLOCKPI, msg)
 
 
 def set_epd_busy(busy: bool) -> None:
     global redis_client
 
-    logging.debug(f"Settings EPD {busy=}")
+    logging.info(f"Settings EPD {busy=}")
     redis_client.set(SETTINGS_EPD_BUSY, "1" if busy else "0")
     redis_publish(MSG_BUSY, MSG_UPDATED)
 
@@ -40,7 +41,7 @@ def get_epd_busy() -> bool:
     global redis_client
 
     busy: bool = True if redis_client.get(SETTINGS_EPD_BUSY) == "1" else False
-    logging.debug(f"Getting EPD {busy=}")
+    logging.info(f"Getting EPD {busy=}")
     return busy
 
 
@@ -63,9 +64,9 @@ def epd_clear() -> None:
 
     set_epd_busy(True)
 
-    logging.debug(f"Clearing display")
+    logging.info(f"Clearing display")
     result, error = clear()
-    logging.debug(f"Finished clearing display")
+    logging.info(f"Finished clearing display")
 
     set_epd_busy(False)
 
@@ -76,18 +77,23 @@ def epd_clear() -> None:
 
 
 def epd_draw(
-    file_path: str, time: str, mode: TimeMode, color: int, shadow: int, draw_grids: bool
+    file_path: str,
+    time: str,
+    mode: TimeMode,
+    color: TextColor,
+    shadow: TextColor,
+    draw_grids: bool,
 ) -> None:
     logging.debug(f"Attempting to draw")
     if not is_machine_valid():
-        logging.warning(f"Invalid machine")
+        logging.warning(f"Unable to draw on an invalid machine")
         redis_publish(
             MSG_RESULT, MSG_DRAW, f"{RETURN_CODE_INVALID_MACHINE}", "Invalid machine."
         )
         return
 
     if get_epd_busy():
-        logging.warning(f"EPD is busy")
+        logging.warning(f"Unable to draw as EPD is busy")
         redis_publish(
             MSG_RESULT, MSG_DRAW, f"{RETURN_CODE_EPD_BUSY}", "E-Paper display is busy."
         )
@@ -116,13 +122,13 @@ def epd_draw(
 
 
 def redis_event_handler(msg: dict[str, str]) -> None:
-    logging.debug(f"redis_event_handler {msg=}")
+    logging.info(f"Received redis {msg=}")
 
     if msg["type"] != "message" or msg["channel"] != CHANNEL_EPDPI:
         return
-    
+
     data: list[str] = msg["data"].split("^")
-    
+
     if data[0] == MSG_CLEAR:
         epd_clear()
 
@@ -130,8 +136,8 @@ def redis_event_handler(msg: dict[str, str]) -> None:
         file_path: str = data[1]
         time: str = data[2]
         mode: TimeMode = TimeMode(int(data[3]))
-        color: int = int(data[4])
-        shadow: int = int(data[5])
+        color: TextColor = TextColor(int(data[4]))
+        shadow: TextColor = TextColor(int(data[5]))
         draw_grids: bool = True if data[6] == "1" else False
 
         epd_draw(file_path, time, mode, color, shadow, draw_grids)
@@ -145,17 +151,17 @@ def redis_exception_handler(ex, pubsub, thread) -> None:
 
 
 def btn_cb_next_img() -> None:
-    logging.debug(f"btn_cb_next_img()")
+    logging.info(f"Button Next Pressed")
     redis_publish(MSG_BTN, MSG_BTN_NEXT)
 
 
 def btn_cb_prev_img() -> None:
-    logging.debug(f"btn_cb_prev_img()")
+    logging.info(f"Button Previous Pressed")
     redis_publish(MSG_BTN, MSG_BTN_PREV)
 
 
 def btn_cb_change_mode() -> None:
-    logging.debug(f"btn_cb_change_mode()")
+    logging.info(f"Button Change Mode Pressed()")
     redis_publish(MSG_BTN, MSG_BTN_CHANGE)
 
 
@@ -173,8 +179,8 @@ redis_thread = redis_pubsub.run_in_thread(
 redis_thread.name = "redis pubsub thread"
 
 
-'''
+"""
 if __name__ == "__main__":
     while True:
         time.sleep(1.0)
-'''
+"""

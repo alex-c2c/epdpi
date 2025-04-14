@@ -1,11 +1,14 @@
 import os
 import sys
-import logging
 
+from logging import Logger, getLogger
 from PIL import Image, ImageDraw, ImageFont
 from PIL.ImageFont import FreeTypeFont
 
 from consts import *
+
+
+logger: Logger = getLogger(__name__)
 
 
 DIR_FONT: str = os.path.join(
@@ -133,7 +136,7 @@ def get_color(color: TextColor, epd) -> int:
     elif color == TextColor.GREEN:
         return epd.GREEN
     else:
-        logging.warning(f"Selected unknown {color=}")
+        logger.warning(f"Selected unknown {color=}")
         return epd.BLACK
 
 
@@ -160,15 +163,16 @@ def draw_grids(draw: ImageDraw, epd) -> None:
 def clear() -> int:
     try:
         from waveshare_epd.epd7in3e import EPD
+
         epd = EPD()
         epd.init()
         epd.clear()
         epd.sleep()
         return RETURN_CODE_SUCCESS, None
 
-    except IOError as e:
-        logging.error(e)
-        return RETURN_CODE_EXCEPTION, e
+    except IOError as error:
+        logger.error(msg=f"Unable to clear display. {error=}")
+        return RETURN_CODE_EXCEPTION, error
 
 
 def draw_time(
@@ -213,13 +217,13 @@ def draw_time(
         # Sleep
         epd.sleep()
 
-        logging.debug(f"Finished drawing time")
+        logger.debug(f"Finished drawing time")
 
         return RETURN_CODE_SUCCESS, None
 
-    except IOError as e:
-        logging.error(e)
-        return RETURN_CODE_EXCEPTION, e
+    except IOError as error:
+        logger.error(msg=f"Unable to draw time. {error=}")
+        return RETURN_CODE_EXCEPTION, error
 
 
 def draw_image_with_time(
@@ -247,7 +251,7 @@ def draw_image_with_time(
         # Draw time
         if mode != TimeMode.OFF and time != "":
             x, y = get_time_pos(mode, epd)
-            logging.debug(f"{x=}, {y=}")
+            logger.debug(f"{x=}, {y=}")
             color: int = get_color(color, epd)
             font: ImageFont = get_font(mode)
 
@@ -265,70 +269,10 @@ def draw_image_with_time(
         # Sleep
         epd.sleep()
 
-        logging.debug(f"Finish drawing image with time")
+        logger.debug(f"Finish drawing image with time")
 
         return RETURN_CODE_SUCCESS, None
 
-    except IOError as e:
-        logging.error(e)
-        return RETURN_CODE_EXCEPTION, e
-
-
-
-
-
-"""
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        prog="EPD",
-        description="Draws to E-Paper 7\"3 E6 Display\n\
-                    --image: if empty or invalid, no images will be drawn.\n\
-                    --time: If empty of invalid, no time will drawn.\n\
-                    --mode: default=FULL_SCREEN_3.\n\
-                    --color: default=WHITE.\n\
-                    --shadow: default-BLACK.\n\
-                    --grid: If included, draw grids to display\n\
-                    --off: If included, clear screen, overwrites all other options."
-    )
-    parser.add_argument("-i", "--image", type=str, help="<Optional> Path to image file, accepted extension: *.bmp", default="", required=False)
-    parser.add_argument("-t", "--time", type=str, help="<Optional> Display time, accepted format is 'HH:MM'", default="", required=False)
-    parser.add_argument("-m", "--mode", type=int, help="<Optional> Set text display mode", default=TimeMode.FULL_3, required=False)
-    parser.add_argument("-c", "--color", type=int, help="<Optional> Set text color", default=2, required=False)
-    parser.add_argument("-s", "--shadow", type=int, help="<Optional> Set text shadow color", default=1, required=False)
-    parser.add_argument("-g", "--grid", help="<Optional> Draw grids on screen", action="store_true",required=False)
-    parser.add_argument("-o", "--off", help="<Optional> Clear screen. This option over writes all other options", action="store_true", required=False)
-
-    args = parser.parse_args()
-    
-    if args.test:
-        busy:bool = get_epd_busy()
-        
-        logging.debug(f"get_epd_busy() - {busy=}")
-        
-        exit(RETURN_CODE_SUCCESS)
-    
-    if args.off:
-        result:int = clear_display()
-        exit(result)
-    
-    image_path:str = args.image
-    if not os.path.isfile(image_path) or image_path.rsplit(".", 1)[1] not in ALLOWED_EXTENSIONS:
-        image_path = ""
-        
-    time:str = args.time
-    if len(time) != 5 or time[2] != ':':
-        time = ""
-        
-    mode:TimeMode = TimeMode(args.mode)
-    color:int = args.color
-    shadow:int = args.shadow
-    draw_grids:bool = args.grid
-    
-    result:int = 0
-    if image_path == "":
-        result = draw_time(time, mode, color, shadow, draw_grids)
-    else:
-        result = draw_image_with_time(image_path, time, mode, color, shadow, draw_grids)
-    
-    exit(result)
-"""
+    except IOError as error:
+        logger.error(msg=f"Unable to draw image with time. {error=}")
+        return RETURN_CODE_EXCEPTION, error
