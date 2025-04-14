@@ -50,15 +50,6 @@ SECT_6_OFFSET_Y: int = -10
 SECT_4_OFFSET_X: int = 30
 SECT_4_OFFSET_Y: int = 30
 
-# Colors
-COLOR_NONE: int = 0
-COLOR_BLACK: int = 1
-COLOR_WHITE: int = 2
-COLOR_YELLOW: int = 3
-COLOR_RED: int = 4
-COLOR_BLUE: int = 5
-COLOR_GREEN: int = 6
-
 
 # Time Mode
 class TimeMode(Enum):
@@ -86,3 +77,14 @@ class TimeMode(Enum):
     FULL_2 = 21  # Medium
     FULL_3 = 22  # Large
     MAX = FULL_3 + 1
+
+
+# Text Colors
+class TextColor(Enum):
+    NONE: int = 0
+    BLACK: int = 1
+    WHITE: int = 2
+    YELLOW: int = 3
+    RED: int = 4
+    BLUE: int = 5
+    GREEN: int = 6

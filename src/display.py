@@ -18,13 +18,13 @@ if os.path.exists(DIR_LIB):
     sys.path.append(DIR_LIB)
 
 
-font_9_sect = ImageFont.truetype(os.path.join("font", "Roboto-Bold.ttf"), 80)
-font_6_sect = ImageFont.truetype(os.path.join("font", "Roboto-Bold.ttf"), 130)
-font_4_sect = ImageFont.truetype(os.path.join("font", "Roboto-Bold.ttf"), 130)
+font_9_sect = ImageFont.truetype(os.path.join(DIR_FONT, "Roboto-Bold.ttf"), 80)
+font_6_sect = ImageFont.truetype(os.path.join(DIR_FONT, "Roboto-Bold.ttf"), 130)
+font_4_sect = ImageFont.truetype(os.path.join(DIR_FONT, "Roboto-Bold.ttf"), 130)
 
-font_full_1 = ImageFont.truetype(os.path.join("font", "Roboto-Bold.ttf"), 200)
-font_full_2 = ImageFont.truetype(os.path.join("font", "Roboto-Bold.ttf"), 250)
-font_full_3 = ImageFont.truetype(os.path.join("font", "Roboto-Bold.ttf"), 300)
+font_full_1 = ImageFont.truetype(os.path.join(DIR_FONT, "Roboto-Bold.ttf"), 200)
+font_full_2 = ImageFont.truetype(os.path.join(DIR_FONT, "Roboto-Bold.ttf"), 250)
+font_full_3 = ImageFont.truetype(os.path.join(DIR_FONT, "Roboto-Bold.ttf"), 300)
 
 
 def get_time_pos(mode: TimeMode, epd) -> tuple[int, int]:
@@ -119,18 +119,18 @@ def get_font(mode: TimeMode) -> FreeTypeFont:
         return font_9_sect
 
 
-def get_color(color: int, epd) -> int:
-    if color == COLOR_BLACK:
+def get_color(color: TextColor, epd) -> int:
+    if color == TextColor.BLACK:
         return epd.BLACK
-    elif color == COLOR_WHITE:
+    elif color == TextColor.WHITE:
         return epd.WHITE
-    elif color == COLOR_YELLOW:
+    elif color == TextColor.YELLOW:
         return epd.YELLOW
-    elif color == COLOR_RED:
+    elif color == TextColor.RED:
         return epd.RED
-    elif color == COLOR_BLUE:
+    elif color == TextColor.BLUE:
         return epd.BLUE
-    elif color == COLOR_GREEN:
+    elif color == TextColor.GREEN:
         return epd.GREEN
     else:
         logging.warning(f"Selected unknown {color=}")
@@ -174,8 +174,8 @@ def clear() -> int:
 def draw_time(
     time: str,
     mode: TimeMode = TimeMode.FULL_3,
-    color: int = COLOR_BLACK,
-    shadow: int = COLOR_NONE,
+    color: TextColor = TextColor.BLACK,
+    shadow: TextColor = TextColor.NONE,
     draw_grid: bool = False,
 ) -> int:
 
@@ -199,7 +199,7 @@ def draw_time(
             color: int = get_color(color, epd)
             font: ImageFont = get_font(mode)
 
-            if shadow is not COLOR_NONE:
+            if shadow is not TextColor.NONE:
                 shadow: int = get_color(shadow, epd)
                 draw.text(
                     (x + SHADOW_OFFSET_X, y + SHADOW_OFFSET_Y), time, shadow, font
@@ -226,8 +226,8 @@ def draw_image_with_time(
     file_path: str,
     time: str,
     mode: TimeMode = TimeMode.FULL_3,
-    color: int = COLOR_WHITE,
-    shadow: int = COLOR_NONE,
+    color: TextColor = TextColor.WHITE,
+    shadow: TextColor = TextColor.NONE,
     draw_grid: bool = False,
 ) -> int:
     try:
@@ -251,7 +251,7 @@ def draw_image_with_time(
             color: int = get_color(color, epd)
             font: ImageFont = get_font(mode)
 
-            if shadow is not COLOR_NONE:
+            if shadow is not TextColor.NONE:
                 shadow: int = get_color(shadow, epd)
                 draw.text(
                     (x + SHADOW_OFFSET_X, y + SHADOW_OFFSET_Y), time, shadow, font
