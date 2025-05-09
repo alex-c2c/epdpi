@@ -173,7 +173,7 @@ def btn_callback_next_img() -> None:
 
 
 btn_on_off = MyButton(2, btn_callback_on_off)
-btn_next_img = MyButton(3, btn_callback_next_img)
+btn_next_img = MyButton(5, btn_callback_next_img)
 
 
 redis_client = redis.Redis(host="localhost", port=6379, decode_responses=True)
