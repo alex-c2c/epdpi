@@ -162,24 +162,18 @@ def redis_exception_handler(ex, pubsub, thread) -> None:
 	pubsub.close()
 
 
-def btn_cb_next_img() -> None:
-	logging.info(f"Button Next Pressed")
+def btn_callback_on_off() -> None:
+	logging.info(f"Button ON/OFF pressed")
+	redis_publish(R_MSG_BTN, R_MSG_BTN_ONOFF)
+
+
+def btn_callback_next_img() -> None:
+	logging.info(f"Button Change Mode Pressed")
 	redis_publish(R_MSG_BTN, R_MSG_BTN_NEXT)
 
 
-def btn_cb_prev_img() -> None:
-	logging.info(f"Button Previous Pressed")
-	redis_publish(R_MSG_BTN, R_MSG_BTN_PREV)
-
-
-def btn_cb_change_mode() -> None:
-	logging.info(f"Button Change Mode Pressed()")
-	redis_publish(R_MSG_BTN, R_MSG_BTN_CHANGE)
-
-
-btn_next_img = MyButton(2, btn_cb_next_img)
-btn_prev_img = MyButton(3, btn_cb_prev_img)
-btn_change_mode = MyButton(5, btn_cb_change_mode)
+btn_on_off = MyButton(2, btn_callback_on_off)
+btn_next_img = MyButton(3, btn_callback_next_img)
 
 
 redis_client = redis.Redis(host="localhost", port=6379, decode_responses=True)
