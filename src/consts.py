@@ -2,12 +2,25 @@ from enum import Enum
 import os
 import tempfile
 
+# EPD Constants
+EPD_WIDTH:int	= 800
+EPD_HEIGHT:int	= 480
+
+EPD_BLACK:int	= 0x000000	# 0000  BGR
+EPD_WHITE:int	= 0xffffff  # 0001
+EPD_YELLOW:int	= 0x00ffff  # 0010
+EPD_RED:int		= 0x0000ff  # 0011
+#EPD_ORANGE:int = 0x0080ff 	# 0100
+EPD_BLUE:int	= 0xff0000  # 0101
+EPD_GREEN:int	= 0x00ff00  # 0110
+
 # Redis
 R_CHANNEL_CLOCKPI: str = "clockpi"
 R_CHANNEL_EPDPI: str = "epdpi"
 
 R_MSG_CLEAR: str = "clear"
 R_MSG_DRAW: str = "draw"
+R_MSG_DRAW_BUFFER: str = "draw_buffer"
 R_MSG_BUSY: str = "busy"
 R_MSG_UPDATED: str = "updated"
 R_MSG_RESULT: str = "result"

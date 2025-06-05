@@ -2,14 +2,14 @@
 
 import redis
 import logging
+import image
+import display
 
 from consts import *
-from display import clear, draw_time, draw_image_with_time
-from mybutton import MyButton
 from logging import Logger, getLogger
 
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 logger: Logger = getLogger(__name__)
 
 
@@ -45,9 +45,7 @@ def get_epd_busy() -> bool:
 	return busy
 
 
-def epd_clear() -> None:
-	logging.debug(f"Attempting to clear display")
-
+def can_draw() -> bool:
 	if not is_machine_valid():
 		logging.warning("Invalid machine")
 		redis_publish(
@@ -56,7 +54,7 @@ def epd_clear() -> None:
 			f"{RETURN_CODE_INVALID_MACHINE}",
 			"Invalid machine.",
 		)
-		return
+		return False
 
 	if get_epd_busy():
 		logging.warning("EPD is busy")
@@ -66,13 +64,20 @@ def epd_clear() -> None:
 			f"{RETURN_CODE_EPD_BUSY}",
 			"E-Paper display is busy.",
 		)
+		return False
+	
+	return True
+
+
+def epd_clear() -> None:
+	logging.info(f"epd_clear")
+
+	if not can_draw():
 		return
 
 	set_epd_busy(True)
 
-	logging.info(f"Clearing display")
-	result, error = clear()
-	logging.info(f"Finished clearing display")
+	result, error = display.clear()
 
 	set_epd_busy(False)
 
@@ -82,48 +87,25 @@ def epd_clear() -> None:
 		redis_publish(R_MSG_RESULT, R_MSG_CLEAR, f"{RETURN_CODE_EXCEPTION}", f"{error}")
 
 
-def epd_draw(
-	file_path: str,
+def epd_draw_image(
+	file_path: str | None,
 	time: str,
 	mode: TimeMode,
 	color: TextColor,
 	shadow: TextColor,
 	draw_grids: bool,
 ) -> None:
-	logging.debug(f"Attempting to draw")
-	if not is_machine_valid():
-		logging.warning(f"Unable to draw on an invalid machine")
-		redis_publish(
-			R_MSG_RESULT,
-			R_MSG_DRAW,
-			f"{RETURN_CODE_INVALID_MACHINE}",
-			"Invalid machine.",
-		)
+	logging.info(f"epd_draw_image")
+ 
+	if not can_draw():
 		return
 
-	if get_epd_busy():
-		logging.warning(f"Unable to draw as EPD is busy")
-		redis_publish(
-			R_MSG_RESULT,
-			R_MSG_DRAW,
-			f"{RETURN_CODE_EPD_BUSY}",
-			"E-Paper display is busy.",
-		)
-		return
+	img = image.process_image(file_path, time, mode, color, shadow, draw_grids)
+	buffer: list[int] = image.convert_image_to_buffer(img)
 
 	set_epd_busy(True)
-
-	if file_path == "":
-		logging.debug(f"Drawing time")
-		result, error = draw_time(time, mode, color, shadow, draw_grids)
-		logging.debug((f"Finished drawing time"))
-
-	else:
-		logging.debug(f"Drawing image with time")
-		result, error = draw_image_with_time(
-			file_path, time, mode, color, shadow, draw_grids
-		)
-		logging.debug(f"Finished drawing image with time")
+	
+	result, error = display.draw(buffer)
 
 	set_epd_busy(False)
 
@@ -131,6 +113,26 @@ def epd_draw(
 		redis_publish(R_MSG_RESULT, R_MSG_DRAW, f"{RETURN_CODE_SUCCESS}")
 	else:
 		redis_publish(R_MSG_RESULT, R_MSG_DRAW, f"{RETURN_CODE_EXCEPTION}", f"{error}")
+  
+
+def epd_draw_buffer(
+	buffer:list[int]
+) -> None:
+	logging.info(f"epd_draw_buffer")
+ 
+	if not can_draw():
+		return
+
+	set_epd_busy(True)
+	
+	result, error = display.draw(buffer)
+
+	set_epd_busy(False)
+
+	if result == RETURN_CODE_SUCCESS:
+		redis_publish(R_MSG_RESULT, R_MSG_DRAW_BUFFER, f"{RETURN_CODE_SUCCESS}")
+	else:
+		redis_publish(R_MSG_RESULT, R_MSG_DRAW_BUFFER, f"{RETURN_CODE_EXCEPTION}", f"{error}")
 
 
 def redis_event_handler(msg: dict[str, str]) -> None:
@@ -145,35 +147,26 @@ def redis_event_handler(msg: dict[str, str]) -> None:
 		epd_clear()
 
 	elif data[0] == R_MSG_DRAW:
-		file_path: str = data[1]
+		file_path: str | None = None if data[1] == "" or not os.path.isfile(data[1]) else data[1]
 		time: str = data[2]
 		mode: TimeMode = TimeMode(int(data[3]))
 		color: TextColor = TextColor(int(data[4]))
 		shadow: TextColor = TextColor(int(data[5]))
 		draw_grids: bool = True if data[6] == "1" else False
 
-		epd_draw(file_path, time, mode, color, shadow, draw_grids)
-
+		epd_draw_image(file_path, time, mode, color, shadow, draw_grids)
+  
+	elif data[0] == R_MSG_DRAW_BUFFER:
+		buffer: list[int] = []
+		
+		epd_draw_buffer(buffer)
+		
 
 def redis_exception_handler(ex, pubsub, thread) -> None:
 	logging.error(f"{ex=}")
 	thread.stop()
 	thread.join(timeout=1.0)
 	pubsub.close()
-
-
-def btn_callback_on_off() -> None:
-	logging.info(f"Button ON/OFF pressed")
-	redis_publish(R_MSG_BTN, R_MSG_BTN_ONOFF)
-
-
-def btn_callback_next_img() -> None:
-	logging.info(f"Button Change Mode Pressed")
-	redis_publish(R_MSG_BTN, R_MSG_BTN_NEXT)
-
-
-btn_on_off = MyButton(2, btn_callback_on_off)
-btn_next_img = MyButton(5, btn_callback_next_img)
 
 
 redis_client = redis.Redis(host="localhost", port=6379, decode_responses=True)
@@ -183,10 +176,3 @@ redis_thread = redis_pubsub.run_in_thread(
 	sleep_time=1, exception_handler=redis_exception_handler
 )
 redis_thread.name = "redis pubsub thread"
-
-
-"""
-if __name__ == "__main__":
-	while True:
-		time.sleep(1.0)
-"""
