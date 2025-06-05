@@ -176,3 +176,6 @@ redis_thread = redis_pubsub.run_in_thread(
 	sleep_time=1, exception_handler=redis_exception_handler
 )
 redis_thread.name = "redis pubsub thread"
+
+# Reset "epd_busy" to False during startup
+set_epd_busy(False)
