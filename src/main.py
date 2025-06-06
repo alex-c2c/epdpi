@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+import os
 import redis
 import logging
 import display
@@ -86,10 +87,8 @@ def epd_clear() -> None:
 		redis_publish(R_MSG_RESULT, R_MSG_CLEAR, f"{RETURN_CODE_EXCEPTION}", f"{error}")
 
 
-def epd_draw(
-	buffer:list[int]
-) -> None:
-	logging.info(f"epd_draw_buffer")
+def epd_draw(buffer:list[int]) -> None:
+	logging.info(f"epd_draw")
  
 	if not can_draw():
 		return
