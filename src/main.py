@@ -157,7 +157,7 @@ def redis_event_handler(msg: dict[str, str]) -> None:
 		epd_draw_image(file_path, time, mode, color, shadow, draw_grids)
   
 	elif data[0] == R_MSG_DRAW_BUFFER:
-		buffer: list[int] = []
+		buffer: list[int] = data[1].split(":")
 		
 		epd_draw_buffer(buffer)
 		
