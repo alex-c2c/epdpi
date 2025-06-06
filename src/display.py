@@ -1,10 +1,18 @@
 import os
 
 from logging import Logger, getLogger
+import sys
 from consts import *
 
 
 log: Logger = getLogger(__name__)
+
+
+DIR_LIB: str = os.path.join(
+	os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "lib"
+)
+if os.path.exists(DIR_LIB):
+	sys.path.append(DIR_LIB)
 
 
 def draw(buffer:list[int]) -> tuple[int, str]:

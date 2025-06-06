@@ -4,3 +4,6 @@
 
 *.pyc
 __pycache__/
+
+dump.rdb
+.DS_Store

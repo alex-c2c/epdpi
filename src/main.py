@@ -2,7 +2,6 @@
 
 import redis
 import logging
-import image
 import display
 
 from consts import *
@@ -87,35 +86,7 @@ def epd_clear() -> None:
 		redis_publish(R_MSG_RESULT, R_MSG_CLEAR, f"{RETURN_CODE_EXCEPTION}", f"{error}")
 
 
-def epd_draw_image(
-	file_path: str | None,
-	time: str,
-	mode: TimeMode,
-	color: TextColor,
-	shadow: TextColor,
-	draw_grids: bool,
-) -> None:
-	logging.info(f"epd_draw_image")
- 
-	if not can_draw():
-		return
-
-	img = image.process_image(file_path, time, mode, color, shadow, draw_grids)
-	buffer: list[int] = image.convert_image_to_buffer(img)
-
-	set_epd_busy(True)
-	
-	result, error = display.draw(buffer)
-
-	set_epd_busy(False)
-
-	if result == RETURN_CODE_SUCCESS:
-		redis_publish(R_MSG_RESULT, R_MSG_DRAW, f"{RETURN_CODE_SUCCESS}")
-	else:
-		redis_publish(R_MSG_RESULT, R_MSG_DRAW, f"{RETURN_CODE_EXCEPTION}", f"{error}")
-  
-
-def epd_draw_buffer(
+def epd_draw(
 	buffer:list[int]
 ) -> None:
 	logging.info(f"epd_draw_buffer")
@@ -130,9 +101,9 @@ def epd_draw_buffer(
 	set_epd_busy(False)
 
 	if result == RETURN_CODE_SUCCESS:
-		redis_publish(R_MSG_RESULT, R_MSG_DRAW_BUFFER, f"{RETURN_CODE_SUCCESS}")
+		redis_publish(R_MSG_RESULT, R_MSG_DRAW, f"{RETURN_CODE_SUCCESS}")
 	else:
-		redis_publish(R_MSG_RESULT, R_MSG_DRAW_BUFFER, f"{RETURN_CODE_EXCEPTION}", f"{error}")
+		redis_publish(R_MSG_RESULT, R_MSG_DRAW, f"{RETURN_CODE_EXCEPTION}", f"{error}")
 
 
 def redis_event_handler(msg: dict[str, str]) -> None:
@@ -145,21 +116,11 @@ def redis_event_handler(msg: dict[str, str]) -> None:
 
 	if data[0] == R_MSG_CLEAR:
 		epd_clear()
-
-	elif data[0] == R_MSG_DRAW:
-		file_path: str | None = None if data[1] == "" or not os.path.isfile(data[1]) else data[1]
-		time: str = data[2]
-		mode: TimeMode = TimeMode(int(data[3]))
-		color: TextColor = TextColor(int(data[4]))
-		shadow: TextColor = TextColor(int(data[5]))
-		draw_grids: bool = True if data[6] == "1" else False
-
-		epd_draw_image(file_path, time, mode, color, shadow, draw_grids)
   
-	elif data[0] == R_MSG_DRAW_BUFFER:
+	elif data[0] == R_MSG_DRAW:
 		buffer: list[int] = list(int(e) for e in data[1].split(":"))
 		
-		epd_draw_buffer(buffer)
+		epd_draw(buffer)
 		
 
 def redis_exception_handler(ex, pubsub, thread) -> None:
