@@ -12,7 +12,11 @@ R_MSG_BUSY: str = "busy"
 R_MSG_UPDATED: str = "updated"
 R_MSG_RESULT: str = "result"
 
-R_SETTINGS_EPD_BUSY: str = "epd_busy"
+
+"""
+OTHER
+"""
+EPD_BUSY: str = "epd_busy"
 
 
 """

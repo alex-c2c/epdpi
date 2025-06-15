@@ -6,16 +6,15 @@ from dotenv import load_dotenv
 load_dotenv()
 
 if os.getenv("ID") is None:   
-    logging.error("Missing var \"ID\" in .env")
-    exit(-1)
-    
+	logging.error("Missing var \"ID\" in .env")
+	exit(-1)
+	
 import redis
 import logging
 import display
 
 from consts import *
 from logging import Logger, getLogger
-
 
 logging.basicConfig(level=logging.DEBUG)
 logger: Logger = getLogger(__name__)
@@ -39,19 +38,11 @@ def redis_publish(key: str, *args) -> None:
 
 
 def set_epd_busy(busy: bool) -> None:
-	global redis_client
-
-	logging.info(f"Settings EPD {busy=}")
-	redis_client.set(R_SETTINGS_EPD_BUSY, "1" if busy else "0")
-	redis_publish(R_MSG_BUSY, R_MSG_UPDATED)
+	os.environ[EPD_BUSY] = "1" if busy else "0"
 
 
 def get_epd_busy() -> bool:
-	global redis_client
-
-	busy: bool = True if redis_client.get(R_SETTINGS_EPD_BUSY) == "1" else False
-	logging.info(f"Getting EPD {busy=}")
-	return busy
+	return False if os.environ.get(EPD_BUSY, "0") == "0" else True
 
 
 def can_draw() -> bool:
@@ -98,7 +89,7 @@ def epd_clear() -> None:
 
 def epd_draw(buffer:list[int]) -> None:
 	logging.info(f"epd_draw")
- 
+
 	if not can_draw():
 		return
 
@@ -124,7 +115,7 @@ def redis_event_handler(msg: dict[str, str]) -> None:
 
 	if data[0] == R_MSG_CLEAR:
 		epd_clear()
-  
+
 	elif data[0] == R_MSG_DRAW:
 		buffer: list[int] = list(int(e) for e in data[1].split(":"))
 		
@@ -138,13 +129,15 @@ def redis_exception_handler(ex, pubsub, thread) -> None:
 	pubsub.close()
 
 
-redis_client = redis.Redis(host="localhost", port=6379, password=os.getenv("REDIS_PASSWORD"), decode_responses=True)
-redis_pubsub = redis_client.pubsub()
-redis_pubsub.subscribe(**{f"{R_CH_SUB}": redis_event_handler})
-redis_thread = redis_pubsub.run_in_thread(
-	sleep_time=1, exception_handler=redis_exception_handler
-)
-redis_thread.name = "redis pubsub thread"
+if __name__ == "__main__":
+	# Set epd_busy to FALSE by default
+	set_epd_busy(False)
 
-# Reset "epd_busy" to False during startup
-set_epd_busy(False)
+	# Initialize Redis
+	redis_client = redis.Redis(host="localhost", port=6379, password=os.getenv("REDIS_PASSWORD"), decode_responses=True)
+	redis_pubsub = redis_client.pubsub()
+	redis_pubsub.subscribe(**{f"{R_CH_SUB}": redis_event_handler})
+	redis_thread = redis_pubsub.run_in_thread(
+		sleep_time=1, exception_handler=redis_exception_handler
+	)
+	redis_thread.name = "redis pubsub thread"
