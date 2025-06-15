@@ -28,10 +28,11 @@ def is_machine_valid() -> bool:
 def redis_publish(key: str, *args) -> None:
 	global redis_client
 
+	id: str = os.getenv("ID")
 	if len(args) > 0:
-		msg: str = f"{key}^{'^'.join(args)}"
+		msg: str = f"{id}^{key}^{'^'.join(args)}"
 	else:
-		msg: str = f"{key}"
+		msg: str = f"{id}^{key}"
 
 	logging.info(f"redis_publish {R_CH_PUB=} {msg=}")
 	redis_client.publish(R_CH_PUB, msg)
