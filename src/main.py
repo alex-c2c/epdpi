@@ -6,7 +6,11 @@ import logging
 import display
 
 from consts import *
+from dotenv import load_dotenv
 from logging import Logger, getLogger
+
+
+load_dotenv()
 
 
 logging.basicConfig(level=logging.DEBUG)
@@ -129,7 +133,8 @@ def redis_exception_handler(ex, pubsub, thread) -> None:
 	pubsub.close()
 
 
-redis_client = redis.Redis(host="localhost", port=6379, decode_responses=True)
+
+redis_client = redis.Redis(host="localhost", port=6379, password=os.getenv("REDIS_PASSWORD"), decode_responses=True)
 redis_pubsub = redis_client.pubsub()
 redis_pubsub.subscribe(**{f"{R_CHANNEL_EPDPI}": redis_event_handler})
 redis_thread = redis_pubsub.run_in_thread(
