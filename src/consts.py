@@ -1,8 +1,10 @@
+import os
+    
 """
 REDIS
 """
-R_CH_PUB_CLOCKPI: str = "clockpi"
-R_CH_SUB_EPDPI: str = "epdpi"
+R_CH_PUB: str = f"epdpi{os.getenv("ID")}_clockpi"
+R_CH_SUB: str = f"clockpi_epdpi{os.getenv("ID")}"
 
 R_MSG_CLEAR: str = "clear"
 R_MSG_DRAW: str = "draw"
