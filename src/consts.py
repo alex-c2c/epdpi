@@ -1,8 +1,8 @@
 """
 REDIS
 """
-R_CHANNEL_CLOCKPI: str = "clockpi"
-R_CHANNEL_EPDPI: str = "epdpi"
+R_CH_PUB_CLOCKPI: str = "clockpi"
+R_CH_SUB_EPDPI: str = "epdpi"
 
 R_MSG_CLEAR: str = "clear"
 R_MSG_DRAW: str = "draw"

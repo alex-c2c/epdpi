@@ -13,6 +13,12 @@ from logging import Logger, getLogger
 load_dotenv()
 
 
+ID: str = os.getenv("ID")
+if ID is None:   
+    logging.error("Missing var in .env: ID")
+    exit(-1)
+    
+
 logging.basicConfig(level=logging.DEBUG)
 logger: Logger = getLogger(__name__)
 
@@ -25,12 +31,12 @@ def redis_publish(key: str, *args) -> None:
 	global redis_client
 
 	if len(args) > 0:
-		msg: str = f"{key}^{'^'.join(args)}"
+		msg: str = f"{ID}^{key}^{'^'.join(args)}"
 	else:
-		msg: str = f"{key}"
+		msg: str = f"{ID}^{key}"
 
-	logging.info(f"redis_publish {R_CHANNEL_CLOCKPI=} {msg=}")
-	redis_client.publish(R_CHANNEL_CLOCKPI, msg)
+	logging.info(f"redis_publish {R_CH_PUB_CLOCKPI=} {msg=}")
+	redis_client.publish(R_CH_PUB_CLOCKPI, msg)
 
 
 def set_epd_busy(busy: bool) -> None:
@@ -112,7 +118,7 @@ def epd_draw(buffer:list[int]) -> None:
 def redis_event_handler(msg: dict[str, str]) -> None:
 	logging.info(f"Received redis {msg=}")
 
-	if msg["type"] != "message" or msg["channel"] != R_CHANNEL_EPDPI:
+	if msg["type"] != "message" or msg["channel"] != f"{R_CH_SUB_EPDPI}_{ID}":
 		return
 
 	data: list[str] = msg["data"].split("^")
@@ -133,10 +139,9 @@ def redis_exception_handler(ex, pubsub, thread) -> None:
 	pubsub.close()
 
 
-
 redis_client = redis.Redis(host="localhost", port=6379, password=os.getenv("REDIS_PASSWORD"), decode_responses=True)
 redis_pubsub = redis_client.pubsub()
-redis_pubsub.subscribe(**{f"{R_CHANNEL_EPDPI}": redis_event_handler})
+redis_pubsub.subscribe(**{f"{R_CH_SUB_EPDPI}_{ID}": redis_event_handler})
 redis_thread = redis_pubsub.run_in_thread(
 	sleep_time=1, exception_handler=redis_exception_handler
 )
