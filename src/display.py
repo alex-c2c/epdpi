@@ -15,7 +15,7 @@ if os.path.exists(DIR_LIB):
 	sys.path.append(DIR_LIB)
 
 
-def draw(buffer:list[int]) -> tuple[int, str]:
+def draw(buffer:list[int]) -> bool:
 	log.info(f"draw {buffer=}")
     
 	try:
@@ -32,14 +32,14 @@ def draw(buffer:list[int]) -> tuple[int, str]:
 
 		log.info(f"draw finish")
 
-		return RETURN_CODE_SUCCESS, None
+		return True
 
 	except Exception as error:
 		log.error(msg=f"Unable to draw buffer. {error=}")
-		return RETURN_CODE_EXCEPTION, error
+		return False
 
 
-def clear() -> tuple[int, str]:
+def clear() -> bool:
 	log.info(f"clear")
  
 	try:
@@ -57,8 +57,8 @@ def clear() -> tuple[int, str]:
   
 		log.info(f"clear finish")
   
-		return RETURN_CODE_SUCCESS, None
+		return True
 
 	except IOError as error:
 		log.error(msg=f"Unable to clear display. {error=}")
-		return RETURN_CODE_EXCEPTION, error
+		return False

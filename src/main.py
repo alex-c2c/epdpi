@@ -1,7 +1,14 @@
 #!/usr/bin/python
 
+import base64
+import logging
 import os
+
 from dotenv import load_dotenv
+from logging import Logger, getLogger
+
+logging.basicConfig(level=logging.DEBUG)
+logger: Logger = getLogger(__name__)
 
 load_dotenv()
 
@@ -23,7 +30,7 @@ logger: Logger = getLogger(__name__)
 def is_machine_valid() -> bool:
 	return "IS_RASPBERRYPI" in os.environ
 
-
+'''
 def redis_publish(key: str, *args) -> None:
 	global redis_client
 
@@ -35,27 +42,32 @@ def redis_publish(key: str, *args) -> None:
 
 	logging.info(f"redis_publish {R_CH_PUB=} {msg=}")
 	redis_client.publish(R_CH_PUB, msg)
+'''
 
-
+'''
 def set_epd_busy(busy: bool) -> None:
 	os.environ[EPD_BUSY] = "1" if busy else "0"
+'''
 
-
+'''
 def get_epd_busy() -> bool:
 	return False if os.environ.get(EPD_BUSY, "0") == "0" else True
-
+'''
 
 def can_draw() -> bool:
 	if not is_machine_valid():
 		logging.warning("Invalid machine")
+		'''
 		redis_publish(
 			R_MSG_RESULT,
 			R_MSG_CLEAR,
 			f"{RETURN_CODE_INVALID_MACHINE}",
 			"Invalid machine.",
 		)
+		'''
 		return False
 
+	'''
 	if get_epd_busy():
 		logging.warning("EPD is busy")
 		redis_publish(
@@ -65,7 +77,7 @@ def can_draw() -> bool:
 			"E-Paper display is busy.",
 		)
 		return False
-	
+	'''
 	return True
 
 
@@ -75,16 +87,18 @@ def epd_clear() -> None:
 	if not can_draw():
 		return
 
-	set_epd_busy(True)
+	#set_epd_busy(True)
 
-	result, error = display.clear()
+	result: bool = display.clear()
 
-	set_epd_busy(False)
+	#set_epd_busy(False)
 
+	'''
 	if result == RETURN_CODE_SUCCESS:
 		redis_publish(R_MSG_RESULT, R_MSG_CLEAR, f"{RETURN_CODE_SUCCESS}")
 	else:
 		redis_publish(R_MSG_RESULT, R_MSG_CLEAR, f"{RETURN_CODE_EXCEPTION}", f"{error}")
+	'''
 
 
 def epd_draw(buffer:list[int]) -> None:
@@ -93,34 +107,45 @@ def epd_draw(buffer:list[int]) -> None:
 	if not can_draw():
 		return
 
-	set_epd_busy(True)
+	#set_epd_busy(True)
 	
-	result, error = display.draw(buffer)
+	result: bool = display.draw(buffer)
 
-	set_epd_busy(False)
-
+	#set_epd_busy(False)
+	'''
 	if result == RETURN_CODE_SUCCESS:
 		redis_publish(R_MSG_RESULT, R_MSG_DRAW, f"{RETURN_CODE_SUCCESS}")
 	else:
 		redis_publish(R_MSG_RESULT, R_MSG_DRAW, f"{RETURN_CODE_EXCEPTION}", f"{error}")
-
+	'''
 
 def redis_event_handler(msg: dict[str, str]) -> None:
-	logging.info(f"Received redis {msg=}")
+	#logging.info(f"Received redis {msg=}")
 
-	if msg["type"] != "message" or msg["channel"] != f"{R_CH_SUB}":
+	if msg["type"] != "message" or msg["channel"] != f"{R_CH_DRAW}":
 		return
+		
+	if msg["channel"] == R_CH_DRAW:
+		data: str = msg["data"]
+		decoded_bytes:bytes = base64.b64decode(data)
+		buffer: list[int] = list(decoded_bytes)
+		logging.debug(f"{len(buffer)=}")	
+		epd_draw(list(decoded_bytes))
+		
+	elif msg["channel"] == R_CH_CLEAR:
+		epd_clear()
 
+	'''
 	data: list[str] = msg["data"].split("^")
 
 	if data[0] == R_MSG_CLEAR:
-		epd_clear()
+		
 
 	elif data[0] == R_MSG_DRAW:
 		buffer: list[int] = list(int(e) for e in data[1].split(":"))
 		
 		epd_draw(buffer)
-		
+	'''	
 
 def redis_exception_handler(ex, pubsub, thread) -> None:
 	logging.error(f"{ex=}")
@@ -131,12 +156,13 @@ def redis_exception_handler(ex, pubsub, thread) -> None:
 
 if __name__ == "__main__":
 	# Set epd_busy to FALSE by default
-	set_epd_busy(False)
+	#set_epd_busy(False)
 
 	# Initialize Redis
 	redis_client = redis.Redis(host="localhost", port=6379, password=os.getenv("REDIS_PASSWORD"), decode_responses=True)
 	redis_pubsub = redis_client.pubsub()
-	redis_pubsub.subscribe(**{f"{R_CH_SUB}": redis_event_handler})
+	redis_pubsub.subscribe(**{f"{R_CH_DRAW}": redis_event_handler})
+	redis_pubsub.subscribe(**{f"{R_CH_CLEAR}": redis_event_handler})
 	redis_thread = redis_pubsub.run_in_thread(
 		sleep_time=1, exception_handler=redis_exception_handler
 	)
