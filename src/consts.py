@@ -6,8 +6,8 @@ REDIS
 R_CH_PUB: str = f"clockpi"
 R_CH_SUB: str = f"epdpi_{os.getenv('ID')}"
 
-R_CH_DRAW: str = f"epdpi_draw_{os.getenv("ID")}"
-R_CH_CLEAR: str = f"epdpi_clear_{os.getenv("ID")}"
+R_CH_DRAW: str = f"epdpi_draw_{os.getenv('ID')}"
+R_CH_CLEAR: str = f"epdpi_clear_{os.getenv('ID')}"
 
 R_MSG_CLEAR: str = "clear"
 R_MSG_DRAW: str = "draw"
