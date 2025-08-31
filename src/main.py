@@ -64,6 +64,7 @@ def epd_draw(buffer: list[int]) -> None:
 
 
 def redis_event_handler(msg: dict[str, str]) -> None:
+	logger.info(f"[redis_event_handler] ", msg)
 	if msg["type"] != "message" or msg["channel"] != f"{R_CH_DRAW}":
 		return
 
@@ -71,7 +72,7 @@ def redis_event_handler(msg: dict[str, str]) -> None:
 		data: str = msg["data"]
 		decoded_bytes: bytes = base64.b64decode(data)
 		buffer: list[int] = list(decoded_bytes)
-		epd_draw(list(decoded_bytes))
+		epd_draw(buffer)
 
 	elif msg["channel"] == R_CH_CLEAR:
 		epd_clear()
