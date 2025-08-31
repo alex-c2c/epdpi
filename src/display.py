@@ -2,7 +2,6 @@ import os
 
 from logging import Logger, getLogger
 import sys
-from consts import *
 
 
 log: Logger = getLogger(__name__)
@@ -15,9 +14,9 @@ if os.path.exists(DIR_LIB):
 	sys.path.append(DIR_LIB)
 
 
-def draw(buffer:list[int]) -> bool:
+def draw(buffer: list[int]) -> bool:
 	log.info(f"draw {buffer=}")
-    
+
 	try:
 		from waveshare_epd.epd7in3e import EPD
 
@@ -41,22 +40,22 @@ def draw(buffer:list[int]) -> bool:
 
 def clear() -> bool:
 	log.info(f"clear")
- 
+
 	try:
 		from waveshare_epd.epd7in3e import EPD
 
 		# Init
 		epd = EPD()
 		epd.init()
-  
+
 		# Clear display
 		epd.clear()
-  
+
 		# Sleep
 		epd.sleep()
-  
+
 		log.info(f"clear finish")
-  
+
 		return True
 
 	except IOError as error:
