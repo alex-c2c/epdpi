@@ -64,9 +64,9 @@ def epd_draw(buffer: list[int]) -> None:
 
 
 def redis_event_handler(msg: dict[str, str]) -> None:
-	logger.info(f"[redis_event_handler] ", msg)
+	logger.info(f"[redis_event_handler] {msg=}")
 	
-	if msg["type"] != "message" or msg["channel"] != f"{R_CH_DRAW}":
+	if msg["type"] != "message":
 		return
 
 	if msg["channel"] == R_CH_DRAW:
@@ -96,6 +96,10 @@ if __name__ == "__main__":
 		password=os.getenv("REDIS_PASSWORD"),
 		decode_responses=True,
 	)
+	
+	logger.info(f"[main] subscribing to redis channel: {R_CH_DRAW}")
+	logger.info(f"[main] subscribing to redis channel: {R_CH_CLEAR}")
+	
 	redis_pubsub = redis_client.pubsub()
 	redis_pubsub.subscribe(**{f"{R_CH_DRAW}": redis_event_handler})
 	redis_pubsub.subscribe(**{f"{R_CH_CLEAR}": redis_event_handler})
