@@ -6,11 +6,12 @@ import logging
 import os
 import redis
 import socket
+import zlib
 
 from dotenv import load_dotenv
 from logging import Logger, getLogger
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.DEBUG, format="%(asctime)s <%(levelname)s> %(name)s.%(funcName)s: %(message)s")
 logger: Logger = getLogger(__name__)
 
 
@@ -64,7 +65,7 @@ def epd_draw(buffer: list[int]) -> None:
 
 
 def redis_event_handler(msg: dict[str, str]) -> None:
-	logger.info(f"[redis_event_handler] {msg=}")
+	logger.info(f"{msg=}")
 	
 	if msg["type"] != "message":
 		return
@@ -72,7 +73,11 @@ def redis_event_handler(msg: dict[str, str]) -> None:
 	if msg["channel"] == R_CH_DRAW:
 		data: str = msg["data"]
 		decoded_bytes: bytes = base64.b64decode(data)
-		buffer: list[int] = list(decoded_bytes)
+		uncompressed_bytes: bytes = zlib.decompress(decoded_bytes)
+		buffer: list[int] = list(uncompressed_bytes)
+		
+		#logger.debug(f"{len(decoded_bytes)=} {len(uncompressed_bytes)=} {len(buffer)=}")
+		
 		epd_draw(buffer)
 
 	elif msg["channel"] == R_CH_CLEAR:
@@ -97,8 +102,9 @@ if __name__ == "__main__":
 		decode_responses=True,
 	)
 	
-	logger.info(f"[main] subscribing to redis channel: {R_CH_DRAW}")
-	logger.info(f"[main] subscribing to redis channel: {R_CH_CLEAR}")
+	logger.info(f"IP: {IP}")
+	logger.info(f"subscribing to redis channel: {R_CH_DRAW}")
+	logger.info(f"subscribing to redis channel: {R_CH_CLEAR}")
 	
 	redis_pubsub = redis_client.pubsub()
 	redis_pubsub.subscribe(**{f"{R_CH_DRAW}": redis_event_handler})

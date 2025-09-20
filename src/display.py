@@ -15,7 +15,7 @@ if os.path.exists(DIR_LIB):
 
 
 def draw(buffer: list[int]) -> bool:
-	log.info(f"draw {buffer=}")
+	log.info(f"drawing display")
 
 	try:
 		from waveshare_epd.epd7in3e import EPD
@@ -39,7 +39,7 @@ def draw(buffer: list[int]) -> bool:
 
 
 def clear() -> bool:
-	log.info(f"clear")
+	log.info(f"clearing display")
 
 	try:
 		from waveshare_epd.epd7in3e import EPD
