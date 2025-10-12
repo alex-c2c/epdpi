@@ -27,7 +27,6 @@ load_dotenv()
 
 
 def get_local_ip() -> str:
-	return "127.0.0.1"
 	s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 	try:
 		# Doesn't have to be reachable — just used to determine the default interface
