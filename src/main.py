@@ -1,12 +1,20 @@
 #!/usr/bin/python
 
 import base64
+from typing import Any
 import display
 import logging
 import os
 import redis
 import socket
 import zlib
+
+from PIL.Image import Image
+from PIL.ImageDraw import ImageDraw
+from PIL.ImageFont import FreeTypeFont
+from PIL import ImageFont as PImgFont
+from PIL import Image as PImg
+from PIL import ImageDraw as PImgDraw
 
 from dotenv import load_dotenv
 from logging import Logger, getLogger
@@ -19,6 +27,7 @@ load_dotenv()
 
 
 def get_local_ip() -> str:
+	return "127.0.0.1"
 	s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 	try:
 		# Doesn't have to be reachable — just used to determine the default interface
@@ -64,7 +73,7 @@ def epd_draw(buffer: list[int]) -> None:
 	display.draw(buffer)
 
 
-def redis_event_handler(msg: dict[str, str]) -> None:
+def redis_event_handler(msg: dict[str, Any]) -> None:
 	logger.info(f"{msg=}")
 	
 	if msg["type"] != "message":
@@ -76,7 +85,10 @@ def redis_event_handler(msg: dict[str, str]) -> None:
 		uncompressed_bytes: bytes = zlib.decompress(decoded_bytes)
 		buffer: list[int] = list(uncompressed_bytes)
 		
-		#logger.debug(f"{len(decoded_bytes)=} {len(uncompressed_bytes)=} {len(buffer)=}")
+		logger.debug(f"{len(data)=}")
+		logger.debug(f"{len(decoded_bytes)=}")
+		logger.debug(f"{len(uncompressed_bytes)=}")
+		logger.debug(f"{len(buffer)=}")
 		
 		epd_draw(buffer)
 
