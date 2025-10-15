@@ -1,7 +1,6 @@
 #!/usr/bin/python
 
 import base64
-from typing import Any
 import display
 import logging
 import os
@@ -9,15 +8,9 @@ import redis
 import socket
 import zlib
 
-from PIL.Image import Image
-from PIL.ImageDraw import ImageDraw
-from PIL.ImageFont import FreeTypeFont
-from PIL import ImageFont as PImgFont
-from PIL import Image as PImg
-from PIL import ImageDraw as PImgDraw
-
 from dotenv import load_dotenv
 from logging import Logger, getLogger
+from typing import Any
 
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s <%(levelname)s> %(name)s.%(funcName)s: %(message)s")
 logger: Logger = getLogger(__name__)
@@ -44,7 +37,7 @@ R_CH_CLEAR: str = f"epdpi_clear_{IP}"
 
 
 def is_machine_valid() -> bool:
-	return "IS_RASPBERRYPI" in os.environ
+	return os.getenv("IS_RASPBERRYPI") == "1"
 
 
 def can_draw() -> bool:
@@ -107,8 +100,8 @@ def redis_exception_handler(ex, pubsub, thread) -> None:
 if __name__ == "__main__":
 	# Initialize Redis
 	redis_client = redis.Redis(
-		host="localhost",
-		port=6379,
+		host=os.getenv("REDIS_HOST", ""),
+		port=int(os.getenv("REDIS_PORT", "0")),
 		password=os.getenv("REDIS_PASSWORD"),
 		decode_responses=True,
 	)
