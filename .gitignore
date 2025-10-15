@@ -4,7 +4,7 @@
 *.code-workspace
 
 *.pyc
-__pycache__/
+**/__pycache__/
 
 dump.rdb
 .DS_Store
