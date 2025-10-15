@@ -4,7 +4,7 @@ from logging import Logger, getLogger
 import sys
 
 
-log: Logger = getLogger(__name__)
+logger: Logger = getLogger(__name__)
 
 
 DIR_LIB: str = os.path.join(
@@ -12,10 +12,12 @@ DIR_LIB: str = os.path.join(
 )
 if os.path.exists(DIR_LIB):
 	sys.path.append(DIR_LIB)
+	logger.info(f"{sys.path=}")	
+	
 
 
 def draw(buffer: list[int]) -> bool:
-	log.info(f"drawing display")
+	logger.info(f"drawing display")
 
 	try:
 		from waveshare_epd.epd7in3e import EPD
@@ -29,17 +31,17 @@ def draw(buffer: list[int]) -> bool:
 		# Sleep
 		epd.sleep()
 
-		log.info(f"draw finish")
+		logger.info(f"draw finish")
 
 		return True
 
 	except Exception as error:
-		log.error(msg=f"Unable to draw buffer. {error=}")
+		logger.error(msg=f"Unable to draw buffer. {error=}")
 		return False
 
 
 def clear() -> bool:
-	log.info(f"clearing display")
+	logger.info(f"clearing display")
 
 	try:
 		from waveshare_epd.epd7in3e import EPD
@@ -54,10 +56,10 @@ def clear() -> bool:
 		# Sleep
 		epd.sleep()
 
-		log.info(f"clear finish")
+		logger.info(f"clear finish")
 
 		return True
 
 	except IOError as error:
-		log.error(msg=f"Unable to clear display. {error=}")
+		logger.error(msg=f"Unable to clear display. {error=}")
 		return False
