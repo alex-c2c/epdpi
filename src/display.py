@@ -2,6 +2,7 @@ import os
 
 from logging import Logger, getLogger
 import sys
+import traceback
 
 
 logger: Logger = getLogger(__name__)
@@ -36,7 +37,11 @@ def draw(buffer: list[int]) -> bool:
 		return True
 
 	except Exception as error:
+		stack_trace: str = ''.join(traceback.format_exception(type(error), error, error.__traceback__))
+
 		logger.error(msg=f"Unable to draw buffer. {error=}")
+		logger.error(stack_trace)
+		
 		return False
 
 
@@ -61,5 +66,9 @@ def clear() -> bool:
 		return True
 
 	except IOError as error:
+		stack_trace: str = ''.join(traceback.format_exception(type(error), error, error.__traceback__))
+		
 		logger.error(msg=f"Unable to clear display. {error=}")
+		logger.error(f"{stack_trace}")
+		
 		return False
