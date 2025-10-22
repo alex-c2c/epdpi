@@ -1,8 +1,8 @@
 # Setup Guide
 
 1. Run `sudo raspi-config` and turn on SPI interface
-2. Run `sudo install python3-redis python3-dotenv`
-3. Create a new file `<epdpi_root>/.env` with the following enviroment variables
+2. Run `sudo install python3-redis python3-dotenv python3-pil`
+3. Create a new file `<epdpi_root>/.env` with the following environment variables
 ``` bash
 REDIS_PASSWORD=<your_redis_password>
 REDIS_HOST=<your_redis_url>
